@@ -1,0 +1,29 @@
+name: Refresh federal finance data
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "19 9 * * 1"
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Check app health
+        run: |
+          curl -fsS "${{ secrets.NEXT_PUBLIC_APP_URL }}/api/health"
+      - name: Trigger protected local ingestion
+        run: |
+          curl -fsS -X POST "${{ secrets.NEXT_PUBLIC_APP_URL }}/api/ingest/local" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"
+      - name: Queue live ingestion
+        run: |
+          curl -fsS -X POST "${{ secrets.NEXT_PUBLIC_APP_URL }}/api/ingest/live" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"
