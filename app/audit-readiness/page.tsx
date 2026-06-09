@@ -2,12 +2,15 @@ import { ClipboardCheck, FileSearch, ShieldAlert, TimerReset } from "lucide-reac
 import { MetricCard } from "@/components/metric-card";
 import { getLocalDataSnapshot, numberCompact } from "@/lib/source-data";
 
-export default function AuditReadinessPage() {
-  const data = getLocalDataSnapshot();
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+export default async function AuditReadinessPage() {
+  const data = await getLocalDataSnapshot();
   const open = data.auditFindings.filter((finding) => finding.status === "open").length;
   const monitoring = data.auditFindings.filter((finding) => finding.status === "monitoring").length;
   const ready = data.auditFindings.filter((finding) => finding.status === "ready").length;
-  const evidenceSources = data.sources.filter((source) => source.status === "parsed" || source.status === "inventoried").length;
+  const evidenceSources = data.auditDocuments.length;
 
   return (
     <div className="page">
@@ -23,7 +26,27 @@ export default function AuditReadinessPage() {
         <MetricCard icon={ShieldAlert} label="Open findings" value={numberCompact(open)} detail="Issues requiring corrective action before production ingestion." />
         <MetricCard icon={TimerReset} label="Monitoring items" value={numberCompact(monitoring)} detail="Known risks with controls or extraction backlog in progress." />
         <MetricCard icon={ClipboardCheck} label="Ready controls" value={numberCompact(ready)} detail="Controls with current evidence in the local source inventory." />
-        <MetricCard icon={FileSearch} label="Evidence sources" value={numberCompact(evidenceSources)} detail="Local files mapped to provenance and audit evidence." />
+        <MetricCard icon={FileSearch} label="Audit PDFs parsed" value={numberCompact(evidenceSources)} detail="Audit and financial report PDFs are scanned for control themes and finding language." />
+      </section>
+
+      <section className="grid cols-2">
+        {data.auditDocuments.map((doc) => (
+          <article className="card metric" key={doc.id}>
+            <div className="metric-top">
+              <div>
+                <h2>{doc.title}</h2>
+                <p className="mini">{doc.pages ? `${doc.pages} pages parsed` : "Inventoried"} · {doc.source}</p>
+              </div>
+              <span className={`status ${doc.status === "parsed" ? "ready" : "monitoring"}`}>{doc.status}</span>
+            </div>
+            <div className="pill-row">
+              {doc.themes.slice(0, 6).map((theme) => (
+                <span className="pill" key={`${doc.id}-${theme.name}`}>{theme.name}: {theme.count}</span>
+              ))}
+            </div>
+            {doc.snippets[0] ? <p>{doc.snippets[0]}</p> : <p>No extractable audit text was available from this PDF.</p>}
+          </article>
+        ))}
       </section>
 
       <section className="card table-wrap">

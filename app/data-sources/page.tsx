@@ -3,10 +3,12 @@ import { BarPanel } from "@/components/charts";
 import { MetricCard } from "@/components/metric-card";
 import { getLocalDataSnapshot, numberCompact } from "@/lib/source-data";
 
-export default function DataSourcesPage() {
-  const data = getLocalDataSnapshot();
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+export default async function DataSourcesPage() {
+  const data = await getLocalDataSnapshot();
   const parsed = data.sources.filter((source) => source.status === "parsed").length;
-  const inventoried = data.sources.filter((source) => source.status === "inventoried").length;
   const byFolder = Object.entries(data.sources.reduce<Record<string, number>>((acc, source) => {
     acc[source.folder.split("/")[0] || "sourcedata"] = (acc[source.folder.split("/")[0] || "sourcedata"] ?? 0) + 1;
     return acc;
@@ -26,7 +28,7 @@ export default function DataSourcesPage() {
         <MetricCard icon={Database} label="Total files" value={numberCompact(data.sources.length)} detail="Complete inventory across the sourcedata tree." />
         <MetricCard icon={CheckCircle2} label="Parsed files" value={numberCompact(parsed)} detail="CSV and JSON files currently feed typed API responses." />
         <MetricCard icon={CloudCog} label="Neon sync" value="Ready" detail="Schema is defined without requiring a local cloud connection." />
-        <MetricCard icon={RefreshCw} label="Live scraping" value="Queued" detail="GitHub Actions workflow is scaffolded for protected refresh calls." />
+        <MetricCard icon={RefreshCw} label="Runtime refresh" value="Live" detail="The app checks file path, size, and modified time on each request." />
       </section>
 
       <section className="grid cols-2">
@@ -39,6 +41,7 @@ export default function DataSourcesPage() {
                 <th>Type</th>
                 <th>Domain</th>
                 <th>FY</th>
+                <th>Modified</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -49,6 +52,7 @@ export default function DataSourcesPage() {
                   <td>{source.extension.toUpperCase()}</td>
                   <td>{source.domain}</td>
                   <td>{source.fiscalYear}</td>
+                  <td>{new Date(source.lastModified).toLocaleString()}</td>
                   <td><span className={`status ${source.status === "parsed" ? "ready" : "monitoring"}`}>{source.status}</span></td>
                 </tr>
               ))}

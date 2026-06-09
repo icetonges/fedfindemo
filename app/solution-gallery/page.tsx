@@ -40,8 +40,11 @@ const solutions = [
   }
 ];
 
-export default function SolutionGalleryPage() {
-  const data = getLocalDataSnapshot();
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+export default async function SolutionGalleryPage() {
+  const data = await getLocalDataSnapshot();
   return (
     <div className="page">
       <header className="page-header">

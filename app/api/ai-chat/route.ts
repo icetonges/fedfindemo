@@ -4,6 +4,9 @@ import Groq from "groq-sdk";
 import { NextRequest, NextResponse } from "next/server";
 import { FEDERAL_FINANCE_SYSTEM_PROMPT, buildGroundingContext, localAnalystResponse } from "@/lib/ai";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
   const profile = String(body.profile ?? "Budget analyst").slice(0, 80);
@@ -12,7 +15,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Message is required." }, { status: 400 });
   }
 
-  const context = buildGroundingContext();
+  const context = await buildGroundingContext();
   const prompt = `${FEDERAL_FINANCE_SYSTEM_PROMPT}\n\nTask profile: ${profile}\n\nSource context:\n${context}\n\nUser request:\n${message}`;
 
   try {
@@ -50,9 +53,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       provider: "local-fallback",
       warning: error instanceof Error ? error.message : "AI provider failed.",
-      answer: localAnalystResponse(profile, message)
+      answer: await localAnalystResponse(profile, message)
     });
   }
 
-  return NextResponse.json({ provider: "local-fallback", answer: localAnalystResponse(profile, message) });
+  return NextResponse.json({ provider: "local-fallback", answer: await localAnalystResponse(profile, message) });
 }

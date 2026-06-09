@@ -1,10 +1,13 @@
-import { Bot, BrainCircuit, DatabaseZap, MessagesSquare } from "lucide-react";
+import { BrainCircuit, DatabaseZap, MessagesSquare } from "lucide-react";
 import { AiChat } from "@/components/ai-chat";
 import { MetricCard } from "@/components/metric-card";
 import { getLocalDataSnapshot, numberCompact } from "@/lib/source-data";
 
-export default function AiAnalystPage() {
-  const data = getLocalDataSnapshot();
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+export default async function AiAnalystPage() {
+  const data = await getLocalDataSnapshot();
   return (
     <div className="page">
       <header className="page-header">
@@ -16,7 +19,7 @@ export default function AiAnalystPage() {
       </header>
 
       <section className="grid cols-3">
-        <MetricCard icon={DatabaseZap} label="Grounding files" value={numberCompact(data.sources.length)} detail="The model receives a compact summary of local file inventory and parsed facts." />
+        <MetricCard icon={DatabaseZap} label="Grounding records" value={numberCompact(data.budgetLines.length + data.awardInsights.totalRows)} detail="The model receives budget lines, award summaries, audit themes, and live source provenance." />
         <MetricCard icon={BrainCircuit} label="Task profiles" value="5" detail="Budget, audit, anomaly, document, and data-quality prompts." />
         <MetricCard icon={MessagesSquare} label="Provider mode" value="Fallback" detail="Gemini, Claude, and Groq are selected when API keys exist." />
       </section>

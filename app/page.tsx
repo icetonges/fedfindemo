@@ -3,30 +3,14 @@ import { AreaPanel, BarPanel } from "@/components/charts";
 import { MetricCard } from "@/components/metric-card";
 import { getLocalDataSnapshot, money, numberCompact } from "@/lib/source-data";
 
-function topRecords(records: Record<string, number>, take = 6) {
-  return Object.entries(records)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, take)
-    .map(([name, value]) => ({ name: name.length > 26 ? `${name.slice(0, 24)}...` : name, value }));
-}
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-export default function DashboardPage() {
-  const data = getLocalDataSnapshot();
-  const totalRows = data.awards.reduce((sum, award) => sum + award.rows, 0);
-  const totalObligations = data.awards.reduce((sum, award) => sum + award.totalObligation, 0);
+export default async function DashboardPage() {
+  const data = await getLocalDataSnapshot();
+  const totalRows = data.awardInsights.totalRows;
+  const totalObligations = data.awardInsights.totalObligations;
   const parsedFiles = data.sources.filter((source) => source.status === "parsed").length;
-  const fyCounts = data.sources.reduce<Record<string, number>>((acc, source) => {
-    acc[source.fiscalYear] = (acc[source.fiscalYear] ?? 0) + 1;
-    return acc;
-  }, {});
-  const awardMix = data.awards.map((award) => ({
-    name: `${award.awardType} ${award.tier}`,
-    value: award.rows
-  }));
-  const sourceMix = Object.entries(data.sources.reduce<Record<string, number>>((acc, source) => {
-    acc[source.extension] = (acc[source.extension] ?? 0) + 1;
-    return acc;
-  }, {})).map(([name, value]) => ({ name, value }));
 
   return (
     <div className="page">
@@ -43,19 +27,19 @@ export default function DashboardPage() {
       </header>
 
       <section className="grid cols-4">
-        <MetricCard icon={Database} label="Source files inventoried" value={numberCompact(data.sources.length)} detail="CSV, JSON, PDF, and XLSX files carry provenance metadata." />
+        <MetricCard icon={Database} label="Live source files" value={numberCompact(data.sources.length)} detail={`Folder scanned at request time; refreshed ${new Date(data.generatedAt).toLocaleTimeString()}.`} />
         <MetricCard icon={ReceiptText} label="Award rows parsed" value={numberCompact(totalRows)} detail="Prime and subaward extracts power the FinOps baseline." />
         <MetricCard icon={Landmark} label="Obligations profiled" value={money(totalObligations)} detail="Local USAspending files drive spend and variance analytics." />
-        <MetricCard icon={AlertTriangle} label="Risk signals" value={numberCompact(data.anomalies.length)} detail="Derived from reversals, missing counterparties, and extraction gaps." />
+        <MetricCard icon={AlertTriangle} label="FY2027 request" value={money(data.budgetInsights.fy2027Request)} detail="Parsed from DoD Excel exhibit lines, not file metadata." />
       </section>
 
       <section className="grid cols-2">
-        <BarPanel title="Source inventory by file type" data={sourceMix} />
-        <AreaPanel title="Source files by fiscal year" data={topRecords(fyCounts, 8)} />
+        <BarPanel title="Budget by appropriation family" data={data.budgetInsights.byAppropriationFamily.map((item) => ({ name: item.name, value: item.value }))} />
+        <AreaPanel title="Award obligations by action month" data={data.awardInsights.byMonth.map((item) => ({ name: item.name, value: item.value }))} />
       </section>
 
       <section className="grid cols-2">
-        <BarPanel title="Award coverage by extract" data={awardMix} />
+        <BarPanel title="Top budget accounts" data={data.budgetInsights.byAccount.slice(0, 8).map((item) => ({ name: item.name.slice(0, 28), value: item.value }))} />
         <div className="section">
           <div className="section-head">
             <h2>Intelligence Feed</h2>
