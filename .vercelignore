@@ -4,3 +4,4 @@ node_modules
 sourcedata
 server-*.log
 tsconfig.tsbuildinfo
+_head_build_test

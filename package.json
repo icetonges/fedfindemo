@@ -2,6 +2,9 @@
   "name": "fedfindemo",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "snapshot": "tsx scripts/write-snapshot.ts",
     "prebuild": "tsx scripts/write-snapshot.ts",
