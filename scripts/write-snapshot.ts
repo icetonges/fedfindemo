@@ -49,7 +49,7 @@ async function main() {
   });
 
   fs.mkdirSync(path.dirname(outputFile), { recursive: true });
-  fs.writeFileSync(outputFile, zlib.gzipSync(JSON.stringify(snapshot)));
+  fs.writeFileSync(outputFile, zlib.gzipSync(JSON.stringify(snapshot), { mtime: 0 } as zlib.ZlibOptions));
 
   console.log(
     `Wrote ${path.relative(process.cwd(), outputFile)} with ${snapshot.sources.length} sources, ${snapshot.budgetInsights.totalLineObservations} budget observations, ${snapshot.awardInsights.totalRows} award rows, and ${snapshot.auditDocuments.length} audit documents.`
