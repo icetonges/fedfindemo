@@ -7,7 +7,7 @@
   },
   "scripts": {
     "snapshot": "tsx scripts/write-snapshot.ts",
-    "prebuild": "tsx scripts/write-snapshot.ts",
+    "prebuild": "node scripts/prepare-build.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -18,23 +18,23 @@
     "@anthropic-ai/sdk": "^0.56.0",
     "@google/generative-ai": "^0.24.1",
     "@neondatabase/serverless": "^1.0.1",
+    "@types/node": "^22.19.20",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
     "groq-sdk": "^0.26.0",
     "lucide-react": "^0.468.0",
     "next": "^16.2.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "recharts": "^3.8.1"
+    "recharts": "^3.8.1",
+    "typescript": "^5.9.3"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2",
-    "@types/react": "^19.0.2",
-    "@types/react-dom": "^19.0.2",
     "eslint": "^9.17.0",
     "eslint-config-next": "^16.2.7",
     "exceljs": "^4.4.0",
     "pdf-parse": "^2.4.5",
-    "tsx": "^4.22.4",
-    "typescript": "^5.7.2"
+    "tsx": "^4.22.4"
   },
   "overrides": {
     "postcss": "^8.5.10",

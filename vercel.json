@@ -1,7 +1,7 @@
 {
   "framework": "nextjs",
   "buildCommand": "npm run build",
-  "installCommand": "npm ci --include=dev",
+  "installCommand": "npm ci --omit=dev",
   "functions": {
     "app/api/**/*.ts": {
       "maxDuration": 30

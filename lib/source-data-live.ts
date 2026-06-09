@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import { unstable_noStore as noStore } from "next/cache";
-import type ExcelJS from "exceljs";
 import type {
   AmountBucket,
   AuditDocument,
@@ -40,6 +39,7 @@ const PDF_THEME_TERMS = [
 let cachedSignature = "";
 let cachedSnapshot: LocalDataSnapshot | null = null;
 const GENERATED_SNAPSHOT = path.join(ROOT, "generated", "local-data.json");
+const loadBuildOnlyModule = new Function("specifier", "return import(specifier)") as (specifier: string) => Promise<Record<string, unknown>>;
 
 function listFiles(dir: string): string[] {
   if (!fs.existsSync(dir)) return [];
@@ -135,7 +135,16 @@ function numberValue(value?: string | number | null): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function cellText(value: ExcelJS.CellValue): string {
+type SpreadsheetCellValue =
+  | string
+  | number
+  | boolean
+  | Date
+  | null
+  | undefined
+  | { text?: string; result?: unknown; richText?: Array<{ text: string }> };
+
+function cellText(value: SpreadsheetCellValue): string {
   if (value === null || value === undefined) return "";
   if (value instanceof Date) return value.toISOString().slice(0, 10);
   if (typeof value === "object") {
@@ -325,8 +334,18 @@ function headerColumn(headers: string[], matcher: RegExp, fallback: number) {
 
 async function parseWorkbookBudgetLines(file: string): Promise<BudgetLine[]> {
   const relative = path.relative(ROOT, file).replaceAll(path.sep, "/");
-  const Excel = await import("exceljs");
-  const Workbook = Excel.Workbook ?? Excel.default.Workbook;
+  const Excel = await loadBuildOnlyModule("exceljs");
+  const ExcelDefault = Excel.default as Record<string, unknown> | undefined;
+  const Workbook = (Excel.Workbook ?? ExcelDefault?.Workbook) as new () => {
+    xlsx: { readFile(file: string): Promise<void> };
+    worksheets: Array<{
+      name: string;
+      rowCount: number;
+      columnCount: number;
+      getCell(row: number, col: number): { value: SpreadsheetCellValue };
+      getRow(row: number): { getCell(col: number): { value: SpreadsheetCellValue } };
+    }>;
+  };
   const workbook = new Workbook();
   await workbook.xlsx.readFile(file);
   const lines: BudgetLine[] = [];
@@ -472,7 +491,11 @@ async function parseAuditPdf(file: string): Promise<AuditDocument> {
   const relative = path.relative(ROOT, file).replaceAll(path.sep, "/");
   const title = path.basename(file, path.extname(file)).replaceAll("_", " ");
   try {
-    const { PDFParse } = await import("pdf-parse");
+    const pdfModule = await loadBuildOnlyModule("pdf-parse");
+    const PDFParse = pdfModule.PDFParse as new (input: { data: Buffer }) => {
+      getText(options: { partial: [number, number] }): Promise<{ text: string; total?: number }>;
+      destroy(): Promise<void>;
+    };
     const parser = new PDFParse({ data: fs.readFileSync(file) });
     const data = await parser.getText({ partial: [1, 10] });
     await parser.destroy();
