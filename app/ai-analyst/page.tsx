@@ -19,7 +19,7 @@ export default async function AiAnalystPage() {
       </header>
 
       <section className="grid cols-3">
-        <MetricCard icon={DatabaseZap} label="Grounding records" value={numberCompact(data.budgetLines.length + data.awardInsights.totalRows)} detail="The model receives budget lines, award summaries, audit themes, and live source provenance." />
+        <MetricCard icon={DatabaseZap} label="Grounding records" value={numberCompact(data.budgetInsights.totalLineObservations + data.awardInsights.totalRows)} detail="The model receives budget lines, award summaries, audit themes, and live source provenance." />
         <MetricCard icon={BrainCircuit} label="Task profiles" value="5" detail="Budget, audit, anomaly, document, and data-quality prompts." />
         <MetricCard icon={MessagesSquare} label="Provider mode" value="Fallback" detail="Gemini, Claude, and Groq are selected when API keys exist." />
       </section>

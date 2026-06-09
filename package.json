@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "snapshot": "tsx scripts/write-snapshot.ts",
     "prebuild": "tsx scripts/write-snapshot.ts",
     "dev": "next dev",
     "build": "next build",
@@ -14,11 +15,9 @@
     "@anthropic-ai/sdk": "^0.56.0",
     "@google/generative-ai": "^0.24.1",
     "@neondatabase/serverless": "^1.0.1",
-    "exceljs": "^4.4.0",
     "groq-sdk": "^0.26.0",
     "lucide-react": "^0.468.0",
     "next": "^16.2.7",
-    "pdf-parse": "^2.4.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^3.8.1"
@@ -29,6 +28,8 @@
     "@types/react-dom": "^19.0.2",
     "eslint": "^9.17.0",
     "eslint-config-next": "^16.2.7",
+    "exceljs": "^4.4.0",
+    "pdf-parse": "^2.4.5",
     "tsx": "^4.22.4",
     "typescript": "^5.7.2"
   },

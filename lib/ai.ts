@@ -12,7 +12,7 @@ export async function buildGroundingContext() {
     `Generated at: ${data.generatedAt}`,
     `Local sources: ${data.sources.length} files; parsed: ${data.sources.filter((source) => source.status === "parsed").length}; inventoried: ${data.sources.filter((source) => source.status === "inventoried").length}.`,
     `Award rows: ${numberCompact(rows)}; obligation signal: ${money(obligations)}.`,
-    `Budget lines: ${numberCompact(data.budgetLines.length)}; FY2027 request signal: ${money(data.budgetInsights.fy2027Request)}; top account: ${data.budgetInsights.byAccount[0]?.name ?? "none"}.`,
+    `Budget lines: ${numberCompact(data.budgetInsights.totalLineObservations)}; FY2027 request signal: ${money(data.budgetInsights.fy2027Request)}; top account: ${data.budgetInsights.byAccount[0]?.name ?? "none"}.`,
     `Award operations: top recipient ${data.awardInsights.byRecipient[0]?.name ?? "none"}; top NAICS/program ${data.awardInsights.byNaics[0]?.name ?? "none"}.`,
     `Audit documents: ${data.auditDocuments.map((doc) => `${doc.title} (${doc.themes.map((theme) => theme.name).slice(0, 3).join(", ")})`).join("; ") || "none"}.`,
     `Audit findings: ${data.auditFindings.map((finding) => `${finding.area}: ${finding.status}/${finding.risk}`).join("; ")}.`,
@@ -26,7 +26,7 @@ export async function localAnalystResponse(profile: string, message: string) {
   const topAnomalies = data.anomalies.slice(0, 3).map((anomaly) => `${anomaly.title} (${anomaly.source})`);
   const nextTables = ["source_documents", "award_transactions", "budget_accounts", "budget_lines", "financial_anomalies"];
   return [
-    `${profile}: based on the live local snapshot, the strongest production path is to normalize parsed CSV award rows and Excel budget lines first, then attach PDF audit snippets as evidence records.`,
+    `${profile}: based on the live source snapshot, the strongest production path is to normalize parsed CSV award rows and Excel budget lines first, then attach PDF audit snippets as evidence records.`,
     `The main risk signals are ${topAnomalies.join("; ") || "currently limited to extraction backlog signals"}.`,
     `Open or monitored audit areas are ${openFindings.map((finding) => `${finding.area} (${finding.risk})`).join(", ") || "none"}.`,
     `For Neon, load ${nextTables.join(", ")} with source path, fiscal year, agency, source type, and extraction timestamp on every row. User question: ${message}`

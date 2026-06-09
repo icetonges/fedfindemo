@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   outputFileTracingIncludes: {
-    "/*": ["./generated/local-data.json"]
+    "/*": ["./generated/local-data.json.gz"]
   },
   turbopack: {
     root: process.cwd()

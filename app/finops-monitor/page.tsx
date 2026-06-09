@@ -1,5 +1,6 @@
 import { AlertOctagon, BadgeDollarSign, Building2, Receipt } from "lucide-react";
 import { BarPanel } from "@/components/charts";
+import { AwardQueryExplorer } from "@/components/award-query-explorer";
 import { MetricCard } from "@/components/metric-card";
 import { getLocalDataSnapshot, money, numberCompact } from "@/lib/source-data";
 
@@ -106,6 +107,8 @@ export default async function FinOpsMonitorPage() {
           </table>
         </div>
       </section>
+
+      <AwardQueryExplorer />
     </div>
   );
 }

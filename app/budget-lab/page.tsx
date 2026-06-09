@@ -1,6 +1,7 @@
 import { BookOpenCheck, FileSpreadsheet, LibraryBig, Sigma } from "lucide-react";
 import { BarPanel } from "@/components/charts";
 import { MetricCard } from "@/components/metric-card";
+import { BudgetQueryExplorer } from "@/components/budget-query-explorer";
 import { getLocalDataSnapshot, money, numberCompact } from "@/lib/source-data";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +23,7 @@ export default async function BudgetLabPage() {
       </header>
 
       <section className="grid cols-4">
-        <MetricCard icon={BookOpenCheck} label="Budget lines parsed" value={numberCompact(data.budgetLines.length)} detail="Excel exhibit rows are normalized by account, activity, fiscal year, and scenario." />
+        <MetricCard icon={BookOpenCheck} label="Budget lines parsed" value={numberCompact(data.budgetInsights.totalLineObservations)} detail="Excel exhibit rows are normalized by account, activity, fiscal year, and scenario." />
         <MetricCard icon={LibraryBig} label="FY2026 total" value={money(data.budgetInsights.fy2026Total)} detail="Total/request/enacted/spend-plan columns are treated as dollars in thousands." />
         <MetricCard icon={FileSpreadsheet} label="FY2027 total/request" value={money(data.budgetInsights.fy2027Total)} detail={`${xlsx.length} spreadsheets are read directly from the local folder.`} />
         <MetricCard icon={Sigma} label="Largest variance" value={money(data.budgetInsights.yearOverYear[0]?.delta ?? 0)} detail={data.budgetInsights.yearOverYear[0]?.accountTitle ?? "No FY variance available"} />
@@ -59,7 +60,7 @@ export default async function BudgetLabPage() {
       <section className="section">
         <div className="section-head">
           <h2>Largest Program Lines</h2>
-          <span className="pill">{data.budgetLines.length.toLocaleString()} parsed observations</span>
+          <span className="pill">{data.budgetInsights.totalLineObservations.toLocaleString()} parsed observations</span>
         </div>
         <div className="card table-wrap">
           <table>
@@ -88,6 +89,8 @@ export default async function BudgetLabPage() {
           </table>
         </div>
       </section>
+
+      <BudgetQueryExplorer />
     </div>
   );
 }

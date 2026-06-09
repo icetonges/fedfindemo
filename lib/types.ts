@@ -104,6 +104,7 @@ export type BudgetLine = {
 };
 
 export type BudgetInsights = {
+  totalLineObservations: number;
   totalBudgetDollars: number;
   fy2026Total: number;
   fy2027Total: number;

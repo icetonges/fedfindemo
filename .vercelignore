@@ -1,0 +1,6 @@
+.git
+.next
+node_modules
+sourcedata
+server-*.log
+tsconfig.tsbuildinfo
