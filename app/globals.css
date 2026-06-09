@@ -239,6 +239,16 @@ p {
   gap: 12px;
 }
 
+.metric-link {
+  color: inherit;
+  transition: border-color 160ms ease, transform 160ms ease;
+}
+
+.metric-link:hover {
+  border-color: var(--blue);
+  transform: translateY(-1px);
+}
+
 .metric-top {
   display: flex;
   justify-content: space-between;
@@ -343,6 +353,11 @@ td {
   min-height: 340px;
 }
 
+.filter-panel {
+  display: grid;
+  gap: 12px;
+}
+
 .chart-title {
   margin-bottom: 14px;
 }
@@ -416,6 +431,11 @@ td {
   margin-bottom: 14px;
 }
 
+.control-row.chart-controls,
+.control-row.ai-controls {
+  grid-template-columns: minmax(160px, 0.8fr) minmax(160px, 0.8fr) minmax(260px, 1.4fr);
+}
+
 select,
 .search-box input {
   width: 100%;
@@ -449,6 +469,17 @@ select,
 .mini {
   color: var(--muted);
   font-size: 12px;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 10px;
 }
 
 .theme-button,
@@ -618,6 +649,58 @@ select,
   border-radius: 8px;
 }
 
+.ai-workbench {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+}
+
+.ai-rail {
+  border-right: 1px solid var(--line);
+}
+
+.ai-main {
+  display: grid;
+  gap: 14px;
+}
+
+.toggle-line {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink);
+  background: var(--panel);
+  font-weight: 700;
+}
+
+.analyst-textarea {
+  min-height: 170px;
+}
+
+.ai-results {
+  display: grid;
+  gap: 12px;
+}
+
+.compare-results {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ai-output {
+  align-content: start;
+}
+
+.ai-output pre {
+  margin: 0;
+  color: var(--ink);
+  white-space: pre-wrap;
+  font: inherit;
+  line-height: 1.55;
+}
+
 .spin {
   animation: spin 900ms linear infinite;
 }
@@ -647,6 +730,8 @@ select,
   .grid.cols-2,
   .signal-grid,
   .workbench-grid,
+  .ai-workbench,
+  .compare-results,
   .split-panel,
   .control-row {
     grid-template-columns: 1fr;

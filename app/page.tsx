@@ -1,5 +1,6 @@
 import { AlertTriangle, Database, FileText, Landmark, ReceiptText, ShieldCheck } from "lucide-react";
 import { AreaPanel, BarPanel } from "@/components/charts";
+import { FilteredChartPanel } from "@/components/filtered-chart-panel";
 import { MissionControlWorkbench } from "@/components/mission-control-workbench";
 import { MetricCard } from "@/components/metric-card";
 import { getLocalDataSnapshot, money, numberCompact } from "@/lib/source-data";
@@ -28,13 +29,18 @@ export default async function DashboardPage() {
       </header>
 
       <section className="grid cols-4">
-        <MetricCard icon={Database} label="Live source files" value={numberCompact(data.sources.length)} detail={`Folder scanned at request time; refreshed ${new Date(data.generatedAt).toLocaleTimeString()}.`} />
-        <MetricCard icon={ReceiptText} label="Award rows parsed" value={numberCompact(totalRows)} detail="Prime and subaward extracts power the FinOps baseline." />
-        <MetricCard icon={Landmark} label="Obligations profiled" value={money(totalObligations)} detail="Local USAspending files drive spend and variance analytics." />
-        <MetricCard icon={AlertTriangle} label="FY2027 request" value={money(data.budgetInsights.fy2027Request)} detail="Parsed from DoD Excel exhibit lines, not file metadata." />
+        <MetricCard icon={Database} label="Live source files" value={numberCompact(data.sources.length)} detail={`Folder scanned at request time; refreshed ${new Date(data.generatedAt).toLocaleTimeString()}.`} href="/insights/sources" />
+        <MetricCard icon={ReceiptText} label="Award rows parsed" value={numberCompact(totalRows)} detail="Prime and subaward extracts power the FinOps baseline." href="/insights/awards" />
+        <MetricCard icon={Landmark} label="Obligations profiled" value={money(totalObligations)} detail="Local USAspending files drive spend and variance analytics." href="/insights/awards" />
+        <MetricCard icon={AlertTriangle} label="FY2027 request" value={money(data.budgetInsights.fy2027Request)} detail="Parsed from DoD Excel exhibit lines, not file metadata." href="/insights/budget" />
       </section>
 
       <MissionControlWorkbench />
+
+      <section className="grid cols-2">
+        <FilteredChartPanel title="Filtered budget slice" scope="budget" defaultFiscalYear="2027" defaultGroupBy="family" />
+        <FilteredChartPanel title="Filtered award slice" scope="awards" defaultGroupBy="recipient" />
+      </section>
 
       <section className="grid cols-2">
         <BarPanel title="Budget by appropriation family" data={data.budgetInsights.byAppropriationFamily.map((item) => ({ name: item.name, value: item.value }))} />

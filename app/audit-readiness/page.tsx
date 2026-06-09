@@ -24,10 +24,10 @@ export default async function AuditReadinessPage() {
       </header>
 
       <section className="grid cols-4">
-        <MetricCard icon={ShieldAlert} label="Open findings" value={numberCompact(open)} detail="Issues requiring corrective action before production ingestion." />
-        <MetricCard icon={TimerReset} label="Monitoring items" value={numberCompact(monitoring)} detail="Known risks with controls or extraction backlog in progress." />
-        <MetricCard icon={ClipboardCheck} label="Ready controls" value={numberCompact(ready)} detail="Controls with current evidence in the local source inventory." />
-        <MetricCard icon={FileSearch} label="Audit PDFs parsed" value={numberCompact(evidenceSources)} detail="Audit and financial report PDFs are scanned for control themes and finding language." />
+        <MetricCard icon={ShieldAlert} label="Open findings" value={numberCompact(open)} detail="Issues requiring corrective action before production ingestion." href="/insights/audit" />
+        <MetricCard icon={TimerReset} label="Monitoring items" value={numberCompact(monitoring)} detail="Known risks with controls or extraction backlog in progress." href="/insights/audit" />
+        <MetricCard icon={ClipboardCheck} label="Ready controls" value={numberCompact(ready)} detail="Controls with current evidence in the local source inventory." href="/insights/audit" />
+        <MetricCard icon={FileSearch} label="Audit PDFs parsed" value={numberCompact(evidenceSources)} detail="Audit and financial report PDFs are scanned for control themes and finding language." href="/insights/audit" />
       </section>
 
       <section className="grid cols-2">

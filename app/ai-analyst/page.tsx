@@ -13,15 +13,15 @@ export default async function AiAnalystPage() {
       <header className="page-header">
         <div className="header-copy">
           <p className="eyebrow">AI Analyst</p>
-          <h1>Task-profiled assistant for budget, audit, document, and anomaly workflows.</h1>
-          <p>The endpoint uses local source summaries as grounding context and is ready for Gemini, Claude, and Groq fallback when keys are configured.</p>
+          <h1>Model-comparison analyst workbench for budget, audit, and financial operations.</h1>
+          <p>Run task-profiled analysis against local source evidence, choose the model path, and compare two model outputs side by side.</p>
         </div>
       </header>
 
       <section className="grid cols-3">
         <MetricCard icon={DatabaseZap} label="Grounding records" value={numberCompact(data.budgetInsights.totalLineObservations + data.awardInsights.totalRows)} detail="The model receives budget lines, award summaries, audit themes, and live source provenance." />
-        <MetricCard icon={BrainCircuit} label="Task profiles" value="5" detail="Budget, audit, anomaly, document, and data-quality prompts." />
-        <MetricCard icon={MessagesSquare} label="Provider mode" value="Fallback" detail="Gemini, Claude, and Groq are selected when API keys exist." />
+        <MetricCard icon={BrainCircuit} label="Task profiles" value="6" detail="Budget, audit, anomaly, document, data-quality, and executive briefing modes." />
+        <MetricCard icon={MessagesSquare} label="Model comparison" value="Side by side" detail="Gemini, Claude, Groq, auto fallback, and deterministic local analyst paths." />
       </section>
 
       <AiChat />

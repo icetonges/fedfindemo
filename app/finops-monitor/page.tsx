@@ -1,6 +1,7 @@
 import { AlertOctagon, BadgeDollarSign, Building2, Receipt } from "lucide-react";
 import { BarPanel } from "@/components/charts";
 import { AwardQueryExplorer } from "@/components/award-query-explorer";
+import { FilteredChartPanel } from "@/components/filtered-chart-panel";
 import { MetricCard } from "@/components/metric-card";
 import { getLocalDataSnapshot, money, numberCompact } from "@/lib/source-data";
 
@@ -26,11 +27,13 @@ export default async function FinOpsMonitorPage() {
       </header>
 
       <section className="grid cols-4">
-        <MetricCard icon={Receipt} label="Transactions and subawards" value={numberCompact(rows)} detail="Rows parsed from local USAspending award extracts." />
-        <MetricCard icon={BadgeDollarSign} label="Total obligation signal" value={money(obligations)} detail="Federal action and award amount fields normalized into one profile." />
-        <MetricCard icon={Building2} label="Top recipient obligation" value={money(data.awardInsights.byRecipient[0]?.value ?? 0)} detail={data.awardInsights.byRecipient[0]?.name ?? "No named vendor found"} />
-        <MetricCard icon={AlertOctagon} label="Negative actions" value={numberCompact(negative)} detail="Potential deobligations or corrections queued for variance analysis." />
+        <MetricCard icon={Receipt} label="Transactions and subawards" value={numberCompact(rows)} detail="Rows parsed from local USAspending award extracts." href="/insights/awards" />
+        <MetricCard icon={BadgeDollarSign} label="Total obligation signal" value={money(obligations)} detail="Federal action and award amount fields normalized into one profile." href="/insights/awards" />
+        <MetricCard icon={Building2} label="Top recipient obligation" value={money(data.awardInsights.byRecipient[0]?.value ?? 0)} detail={data.awardInsights.byRecipient[0]?.name ?? "No named vendor found"} href="/insights/awards" />
+        <MetricCard icon={AlertOctagon} label="Negative actions" value={numberCompact(negative)} detail="Potential deobligations or corrections queued for variance analysis." href="/insights/awards" />
       </section>
+
+      <FilteredChartPanel title="Award time and source slice" scope="awards" defaultGroupBy="month" />
 
       <section className="grid cols-2">
         <BarPanel title="Most frequent award counterparties" data={vendors} />

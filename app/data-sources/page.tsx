@@ -1,5 +1,6 @@
 import { CheckCircle2, CloudCog, Database, RefreshCw } from "lucide-react";
 import { BarPanel } from "@/components/charts";
+import { FilteredChartPanel } from "@/components/filtered-chart-panel";
 import { MetricCard } from "@/components/metric-card";
 import { getLocalDataSnapshot, numberCompact } from "@/lib/source-data";
 
@@ -25,11 +26,13 @@ export default async function DataSourcesPage() {
       </header>
 
       <section className="grid cols-4">
-        <MetricCard icon={Database} label="Total files" value={numberCompact(data.sources.length)} detail="Complete inventory across the sourcedata tree." />
-        <MetricCard icon={CheckCircle2} label="Parsed files" value={numberCompact(parsed)} detail="CSV and JSON files currently feed typed API responses." />
+        <MetricCard icon={Database} label="Total files" value={numberCompact(data.sources.length)} detail="Complete inventory across the sourcedata tree." href="/insights/sources" />
+        <MetricCard icon={CheckCircle2} label="Parsed files" value={numberCompact(parsed)} detail="CSV and JSON files currently feed typed API responses." href="/insights/sources" />
         <MetricCard icon={CloudCog} label="Neon sync" value="Ready" detail="Schema is defined without requiring a local cloud connection." />
-        <MetricCard icon={RefreshCw} label="Runtime refresh" value="Live" detail="The app checks file path, size, and modified time on each request." />
+        <MetricCard icon={RefreshCw} label="Runtime refresh" value="Live" detail="The app checks file path, size, and modified time on each request." href="/insights/sources" />
       </section>
+
+      <FilteredChartPanel title="Source inventory slice" scope="sources" defaultGroupBy="folder" />
 
       <section className="grid cols-2">
         <BarPanel title="Source files by source family" data={byFolder} />

@@ -1,5 +1,6 @@
 import { BookOpenCheck, FileSpreadsheet, LibraryBig, Sigma } from "lucide-react";
 import { BarPanel } from "@/components/charts";
+import { FilteredChartPanel } from "@/components/filtered-chart-panel";
 import { MetricCard } from "@/components/metric-card";
 import { BudgetQueryExplorer } from "@/components/budget-query-explorer";
 import { getLocalDataSnapshot, money, numberCompact } from "@/lib/source-data";
@@ -23,11 +24,13 @@ export default async function BudgetLabPage() {
       </header>
 
       <section className="grid cols-4">
-        <MetricCard icon={BookOpenCheck} label="Budget lines parsed" value={numberCompact(data.budgetInsights.totalLineObservations)} detail="Excel exhibit rows are normalized by account, activity, fiscal year, and scenario." />
-        <MetricCard icon={LibraryBig} label="FY2026 total" value={money(data.budgetInsights.fy2026Total)} detail="Total/request/enacted/spend-plan columns are treated as dollars in thousands." />
-        <MetricCard icon={FileSpreadsheet} label="FY2027 total/request" value={money(data.budgetInsights.fy2027Total)} detail={`${xlsx.length} spreadsheets are read directly from the local folder.`} />
-        <MetricCard icon={Sigma} label="Largest variance" value={money(data.budgetInsights.yearOverYear[0]?.delta ?? 0)} detail={data.budgetInsights.yearOverYear[0]?.accountTitle ?? "No FY variance available"} />
+        <MetricCard icon={BookOpenCheck} label="Budget lines parsed" value={numberCompact(data.budgetInsights.totalLineObservations)} detail="Excel exhibit rows are normalized by account, activity, fiscal year, and scenario." href="/insights/budget" />
+        <MetricCard icon={LibraryBig} label="FY2026 total" value={money(data.budgetInsights.fy2026Total)} detail="Total/request/enacted/spend-plan columns are treated as dollars in thousands." href="/insights/budget" />
+        <MetricCard icon={FileSpreadsheet} label="FY2027 total/request" value={money(data.budgetInsights.fy2027Total)} detail={`${xlsx.length} spreadsheets are read directly from the local folder.`} href="/insights/budget" />
+        <MetricCard icon={Sigma} label="Largest variance" value={money(data.budgetInsights.yearOverYear[0]?.delta ?? 0)} detail={data.budgetInsights.yearOverYear[0]?.accountTitle ?? "No FY variance available"} href="/insights/budget" />
       </section>
+
+      <FilteredChartPanel title="Budget document and time slice" scope="budget" defaultFiscalYear="2027" defaultGroupBy="account" />
 
       <section className="grid cols-2">
         <BarPanel title="Budget amount by FY/scenario" data={bookChart} />
