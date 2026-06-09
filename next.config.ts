@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
   poweredByHeader: false,
+  outputFileTracingIncludes: {
+    "/*": ["./generated/local-data.json"]
+  },
   turbopack: {
     root: process.cwd()
   },

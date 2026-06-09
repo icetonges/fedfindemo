@@ -1,8 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { unstable_noStore as noStore } from "next/cache";
-import ExcelJS from "exceljs";
-import { PDFParse } from "pdf-parse";
+import type ExcelJS from "exceljs";
 import type {
   AmountBucket,
   AuditDocument,
@@ -41,6 +40,7 @@ const PDF_THEME_TERMS = [
 
 let cachedSignature = "";
 let cachedSnapshot: LocalDataSnapshot | null = null;
+const GENERATED_SNAPSHOT = path.join(ROOT, "generated", "local-data.json");
 
 function listFiles(dir: string): string[] {
   if (!fs.existsSync(dir)) return [];
@@ -326,7 +326,9 @@ function headerColumn(headers: string[], matcher: RegExp, fallback: number) {
 
 async function parseWorkbookBudgetLines(file: string): Promise<BudgetLine[]> {
   const relative = path.relative(ROOT, file).replaceAll(path.sep, "/");
-  const workbook = new ExcelJS.Workbook();
+  const Excel = await import("exceljs");
+  const Workbook = Excel.Workbook ?? Excel.default.Workbook;
+  const workbook = new Workbook();
   await workbook.xlsx.readFile(file);
   const lines: BudgetLine[] = [];
 
@@ -470,6 +472,7 @@ async function parseAuditPdf(file: string): Promise<AuditDocument> {
   const relative = path.relative(ROOT, file).replaceAll(path.sep, "/");
   const title = path.basename(file, path.extname(file)).replaceAll("_", " ");
   try {
+    const { PDFParse } = await import("pdf-parse");
     const parser = new PDFParse({ data: fs.readFileSync(file) });
     const data = await parser.getText({ partial: [1, 10] });
     await parser.destroy();
@@ -613,11 +616,9 @@ function buildAuditFindings(awardInsights: AwardInsights, budgetInsights: Budget
   ];
 }
 
-export async function getLocalDataSnapshot(): Promise<LocalDataSnapshot> {
-  noStore();
+export async function buildSourceDataSnapshot(): Promise<LocalDataSnapshot> {
   const files = listFiles(SOURCE_ROOT);
   const signature = fileSignature(files);
-  if (cachedSnapshot && cachedSignature === signature) return cachedSnapshot;
 
   const sources = buildInventory(files);
   const awardResults = files.filter((file) => sourceType(file) === "csv").map(parseCsvAwards);
@@ -633,7 +634,7 @@ export async function getLocalDataSnapshot(): Promise<LocalDataSnapshot> {
   const anomalies = buildAnomalies(awardInsights, budgetInsights, auditDocuments);
   const auditFindings = buildAuditFindings(awardInsights, budgetInsights, auditDocuments, sources);
 
-  cachedSnapshot = {
+  return {
     generatedAt: new Date().toISOString(),
     sourceSignature: signature,
     sources,
@@ -673,6 +674,25 @@ export async function getLocalDataSnapshot(): Promise<LocalDataSnapshot> {
       }
     ]
   };
+}
+
+function readGeneratedSnapshot(): LocalDataSnapshot | null {
+  if (!fs.existsSync(GENERATED_SNAPSHOT)) return null;
+  return JSON.parse(fs.readFileSync(GENERATED_SNAPSHOT, "utf8")) as LocalDataSnapshot;
+}
+
+export async function getLocalDataSnapshot(): Promise<LocalDataSnapshot> {
+  noStore();
+  if (process.env.VERCEL || process.env.USE_GENERATED_DATA === "1") {
+    const generated = readGeneratedSnapshot();
+    if (generated) return generated;
+  }
+
+  const files = listFiles(SOURCE_ROOT);
+  const signature = fileSignature(files);
+  if (cachedSnapshot && cachedSignature === signature) return cachedSnapshot;
+
+  cachedSnapshot = await buildSourceDataSnapshot();
   cachedSignature = signature;
   return cachedSnapshot;
 }
