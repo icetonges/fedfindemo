@@ -10,7 +10,13 @@ function readGeneratedSnapshot(): LocalDataSnapshot {
   if (!fs.existsSync(GENERATED_SNAPSHOT)) {
     throw new Error("Generated data snapshot is missing. Run `npm run snapshot` or `npm run build`.");
   }
-  return JSON.parse(zlib.gunzipSync(fs.readFileSync(GENERATED_SNAPSHOT)).toString("utf8")) as LocalDataSnapshot;
+  const snapshot = JSON.parse(zlib.gunzipSync(fs.readFileSync(GENERATED_SNAPSHOT)).toString("utf8")) as LocalDataSnapshot;
+  if (!snapshot.sources.length || !snapshot.budgetInsights.totalLineObservations || !snapshot.awardInsights.totalRows) {
+    throw new Error(
+      `Generated data snapshot is empty or invalid: ${snapshot.sources.length} sources, ${snapshot.budgetInsights.totalLineObservations} budget observations, ${snapshot.awardInsights.totalRows} award rows.`
+    );
+  }
+  return snapshot;
 }
 
 export async function getLocalDataSnapshot(): Promise<LocalDataSnapshot> {
