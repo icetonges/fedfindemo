@@ -701,6 +701,127 @@ select,
   line-height: 1.55;
 }
 
+.solution-workbench {
+  display: grid;
+  gap: 18px;
+}
+
+.solution-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.solution-tile {
+  min-height: 190px;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+
+.solution-tile.active,
+.solution-tile:hover {
+  border-color: var(--blue);
+}
+
+.solution-tile strong {
+  font-size: 18px;
+}
+
+.solution-tile span {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.solution-tile small {
+  color: var(--blue);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.solution-runner {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
+.solution-controls {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dataset-picker {
+  display: grid;
+  gap: 12px;
+}
+
+.source-candidate-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  max-height: 340px;
+  overflow: auto;
+}
+
+.source-candidate {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 9px;
+  align-items: start;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel) 88%, var(--bg));
+}
+
+.source-candidate strong,
+.source-candidate small {
+  display: block;
+}
+
+.source-candidate small {
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.solution-signals {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.driver-list {
+  display: grid;
+  gap: 10px;
+}
+
+.driver-row {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) 48px;
+  gap: 10px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.driver-row > div {
+  height: 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--line) 70%, var(--panel));
+  overflow: hidden;
+}
+
+.driver-row > div > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--blue);
+}
+
 .spin {
   animation: spin 900ms linear infinite;
 }
@@ -732,6 +853,9 @@ select,
   .workbench-grid,
   .ai-workbench,
   .compare-results,
+  .solution-grid,
+  .source-candidate-list,
+  .solution-signals,
   .split-panel,
   .control-row {
     grid-template-columns: 1fr;
