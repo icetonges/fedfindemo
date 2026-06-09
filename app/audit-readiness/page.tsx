@@ -1,4 +1,5 @@
 import { ClipboardCheck, FileSearch, ShieldAlert, TimerReset } from "lucide-react";
+import { AuditQueryExplorer } from "@/components/audit-query-explorer";
 import { MetricCard } from "@/components/metric-card";
 import { getLocalDataSnapshot, numberCompact } from "@/lib/source-data";
 
@@ -35,7 +36,7 @@ export default async function AuditReadinessPage() {
             <div className="metric-top">
               <div>
                 <h2>{doc.title}</h2>
-                <p className="mini">{doc.pages ? `${doc.pages} pages parsed` : "Inventoried"} · {doc.source}</p>
+                <p className="mini">{doc.pages ? `${doc.pages} pages parsed` : "Inventoried"} . {doc.source}</p>
               </div>
               <span className={`status ${doc.status === "parsed" ? "ready" : "monitoring"}`}>{doc.status}</span>
             </div>
@@ -77,6 +78,8 @@ export default async function AuditReadinessPage() {
           </tbody>
         </table>
       </section>
+
+      <AuditQueryExplorer />
     </div>
   );
 }

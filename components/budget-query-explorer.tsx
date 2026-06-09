@@ -37,7 +37,7 @@ export function BudgetQueryExplorer() {
     <section className="section">
       <div className="section-head">
         <h2>Interactive Budget Query</h2>
-        <span className="pill">{payload ? `${payload.totalMatches.toLocaleString()} matches · ${dollars(payload.totalAmount)}` : "Loading"}</span>
+        <span className="pill">{payload ? `${payload.totalMatches.toLocaleString()} matches . ${dollars(payload.totalAmount)}` : "Loading"}</span>
       </div>
       <div className="card work-area">
         <div className="control-row">

@@ -39,7 +39,7 @@ export function AwardQueryExplorer() {
     <section className="section">
       <div className="section-head">
         <h2>Interactive Award Query</h2>
-        <span className="pill">{payload ? `${payload.totalMatches.toLocaleString()} matches · ${dollars(payload.totalObligations)}` : "Loading"}</span>
+        <span className="pill">{payload ? `${payload.totalMatches.toLocaleString()} matches . ${dollars(payload.totalObligations)}` : "Loading"}</span>
       </div>
       <div className="card work-area">
         <div className="control-row">

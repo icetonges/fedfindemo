@@ -1,5 +1,6 @@
 import { AlertTriangle, Database, FileText, Landmark, ReceiptText, ShieldCheck } from "lucide-react";
 import { AreaPanel, BarPanel } from "@/components/charts";
+import { MissionControlWorkbench } from "@/components/mission-control-workbench";
 import { MetricCard } from "@/components/metric-card";
 import { getLocalDataSnapshot, money, numberCompact } from "@/lib/source-data";
 
@@ -32,6 +33,8 @@ export default async function DashboardPage() {
         <MetricCard icon={Landmark} label="Obligations profiled" value={money(totalObligations)} detail="Local USAspending files drive spend and variance analytics." />
         <MetricCard icon={AlertTriangle} label="FY2027 request" value={money(data.budgetInsights.fy2027Request)} detail="Parsed from DoD Excel exhibit lines, not file metadata." />
       </section>
+
+      <MissionControlWorkbench />
 
       <section className="grid cols-2">
         <BarPanel title="Budget by appropriation family" data={data.budgetInsights.byAppropriationFamily.map((item) => ({ name: item.name, value: item.value }))} />

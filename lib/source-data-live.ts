@@ -38,6 +38,8 @@ const PDF_THEME_TERMS = [
 
 let cachedSignature = "";
 let cachedSnapshot: LocalDataSnapshot | null = null;
+let pendingSignature = "";
+let pendingSnapshot: Promise<LocalDataSnapshot> | null = null;
 const GENERATED_SNAPSHOT = path.join(ROOT, "generated", "local-data.json");
 const loadBuildOnlyModule = new Function("specifier", "return import(specifier)") as (specifier: string) => Promise<Record<string, unknown>>;
 
@@ -714,10 +716,21 @@ export async function getLocalDataSnapshot(): Promise<LocalDataSnapshot> {
   const files = listFiles(SOURCE_ROOT);
   const signature = fileSignature(files);
   if (cachedSnapshot && cachedSignature === signature) return cachedSnapshot;
+  if (pendingSnapshot && pendingSignature === signature) return pendingSnapshot;
 
-  cachedSnapshot = await buildSourceDataSnapshot();
-  cachedSignature = signature;
-  return cachedSnapshot;
+  pendingSignature = signature;
+  pendingSnapshot = buildSourceDataSnapshot()
+    .then((snapshot) => {
+      cachedSnapshot = snapshot;
+      cachedSignature = snapshot.sourceSignature;
+      return snapshot;
+    })
+    .finally(() => {
+      pendingSnapshot = null;
+      pendingSignature = "";
+    });
+
+  return pendingSnapshot;
 }
 
 export function money(value: number) {

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BarChart3, Bot, Database, FileCheck2, GalleryHorizontalEnd, Gauge, Landmark, LineChart, ShieldCheck } from "lucide-react";
+import { DisclaimerModal } from "@/components/disclaimer-modal";
+import { ThemeToggle } from "@/components/theme-toggle";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -46,9 +48,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <FileCheck2 size={16} />
               <span>Local source data is the active system of record.</span>
             </div>
+            <ThemeToggle />
           </aside>
           <main className="content">{children}</main>
         </div>
+        <DisclaimerModal />
       </body>
     </html>
   );
