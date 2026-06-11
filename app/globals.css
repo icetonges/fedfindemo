@@ -865,6 +865,11 @@ select,
   background: color-mix(in srgb, var(--panel) 88%, var(--bg));
 }
 
+.analysis-narrative-list {
+  display: grid;
+  gap: 14px;
+}
+
 .solution-controls {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }

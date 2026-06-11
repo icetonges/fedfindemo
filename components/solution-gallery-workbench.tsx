@@ -43,6 +43,7 @@ type AnalysisPayload = {
     priority: string;
     owner: string;
     action: string;
+    currentRunResult: string;
     rootCause: string;
     timeline: string;
     steps: string[];
@@ -52,6 +53,11 @@ type AnalysisPayload = {
   }>;
   keyFindings: string[];
   riskRegister: string[];
+  completedAnalyses: Array<{
+    title: string;
+    summary: string;
+    items: Array<{ title: string; finding: string; interpretation: string; evidence: string; action: string }>;
+  }>;
   corpusProfile: {
     rowsEvaluated: number;
     sourceCount: number;
@@ -336,6 +342,32 @@ export function SolutionGalleryWorkbench({ solutions, models, sources }: { solut
 
           <section className="card report-block">
             <div className="section-head">
+              <h2>Actual Analysis Completed</h2>
+              <span className="pill">Current run outcomes</span>
+            </div>
+            <div className="analysis-narrative-list">
+              {analysis.completedAnalyses.map((section) => (
+                <article className="knowledge-section" key={section.title}>
+                  <h3>{section.title}</h3>
+                  <p>{section.summary}</p>
+                  <div className="list">
+                    {section.items.map((item) => (
+                      <article className="list-item" key={item.title}>
+                        <h3>{item.title}</h3>
+                        <p>{item.finding}</p>
+                        <p>{item.interpretation}</p>
+                        <span className="mini">Evidence: {item.evidence}</span>
+                        <span className="mini">Action: {item.action}</span>
+                      </article>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="card report-block">
+            <div className="section-head">
               <h2>Source Coverage</h2>
               <span className="pill">Whole-document/corpus check</span>
             </div>
@@ -387,9 +419,15 @@ export function SolutionGalleryWorkbench({ solutions, models, sources }: { solut
                   </div>
                   <div className="knowledge-grid">
                     <section className="knowledge-section">
+                      <h3>Actual Result From This Run</h3>
+                      <p>{item.currentRunResult}</p>
+                    </section>
+                    <section className="knowledge-section">
                       <h3>Root Cause Analysis</h3>
                       <p>{item.rootCause}</p>
                     </section>
+                  </div>
+                  <div className="knowledge-grid">
                     <section className="knowledge-section">
                       <h3>Evidence Needed</h3>
                       <p>{item.evidenceNeeded}</p>
