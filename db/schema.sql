@@ -97,3 +97,40 @@ create table if not exists ingestion_runs (
   records_loaded integer not null default 0,
   details jsonb not null default '{}'::jsonb
 );
+
+create extension if not exists vector;
+
+create table if not exists document_chunks (
+  id bigserial primary key,
+  source_document_id bigint references source_documents(id),
+  source_path text not null,
+  chunk_index integer not null,
+  heading text,
+  content text not null,
+  token_estimate integer not null default 0,
+  fiscal_year text,
+  domain text,
+  metadata jsonb not null default '{}'::jsonb,
+  embedding vector(1536),
+  created_at timestamptz not null default now(),
+  unique(source_path, chunk_index)
+);
+
+create index if not exists document_chunks_source_path_idx on document_chunks(source_path);
+create index if not exists document_chunks_metadata_gin_idx on document_chunks using gin(metadata);
+
+create table if not exists model_runs (
+  id bigserial primary key,
+  solution_id text not null,
+  model_id text not null,
+  target text,
+  horizon text,
+  source_signature text,
+  selected_sources text[] not null default '{}',
+  corpus_profile jsonb not null default '{}'::jsonb,
+  executive_summary text,
+  model_output jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists model_runs_solution_created_idx on model_runs(solution_id, created_at desc);

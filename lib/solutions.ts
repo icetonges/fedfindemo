@@ -100,7 +100,7 @@ function impact(name: string, value: number, direction = "positive") {
 }
 
 function summarizeSources(sources: SourceDocument[]) {
-  return sources.slice(0, 8).map((source) => ({
+  return sources.slice(0, 12).map((source) => ({
     name: source.name,
     path: source.relativePath,
     domain: source.domain,
@@ -115,6 +115,42 @@ function summarizeSources(sources: SourceDocument[]) {
           ? "Structured budget-book evidence"
           : "Document and policy evidence"
   }));
+}
+
+function sourceRecordCoverage(data: LocalDataSnapshot, sources: SourceDocument[]) {
+  return sources.slice(0, 14).map((source) => {
+    const budgetRows = data.budgetLines.filter((line) => line.source === source.relativePath);
+    const awardRows = data.awardTransactions.filter((award) => award.source === source.relativePath);
+    const auditDoc = data.auditDocuments.find((doc) => doc.source === source.relativePath);
+    const amount = budgetRows.reduce((sum, row) => sum + row.amount, 0) + awardRows.reduce((sum, row) => sum + row.obligation, 0);
+    return {
+      source: source.relativePath,
+      domain: source.domain,
+      status: source.status,
+      rowsEvaluated: budgetRows.length + awardRows.length + (auditDoc ? auditDoc.pages || 1 : 0),
+      amount: money(amount),
+      evidenceSignal: auditDoc ? auditDoc.themes.map((theme) => `${theme.name}: ${theme.count}`).join("; ") : `${source.extension.toUpperCase()} parser coverage`
+    };
+  });
+}
+
+function makeCorpusProfile(input: {
+  rowsEvaluated: number;
+  sourceCount: number;
+  entityCount: number;
+  totalSignal: number;
+  selectedSourceCount: number;
+  outputRows: number;
+}) {
+  return {
+    rowsEvaluated: input.rowsEvaluated,
+    sourceCount: input.sourceCount,
+    entityCount: input.entityCount,
+    selectedSourceCount: input.selectedSourceCount,
+    totalSignal: money(input.totalSignal),
+    outputRowsDisplayed: input.outputRows,
+    wholeCorpusStatement: `The model evaluated the full matching corpus of ${input.rowsEvaluated.toLocaleString()} normalized records. The visible table is a ranked excerpt of ${input.outputRows} high-signal records, not the full review set.`
+  };
 }
 
 function methodologyFor(solutionId: SolutionId, modelLabel: string, target: string) {
@@ -191,12 +227,14 @@ function attachNarrative<T extends {
   target: string;
   summary: string;
   recommendations: string[];
-}>(solutionId: SolutionId, payload: T, sources: SourceDocument[]) {
+}>(solutionId: SolutionId, payload: T, sources: SourceDocument[], data: LocalDataSnapshot, extras: Record<string, unknown> = {}) {
   return {
     ...payload,
+    ...extras,
     executiveSummary: executiveSummary(solutionId, payload.summary, sources),
     sourceBrief: summarizeSources(sources),
     modelMethodology: methodologyFor(solutionId, payload.model.label, payload.target),
+    sourceCoverage: sourceRecordCoverage(data, sources),
     actionItems: actionItems(solutionId, payload.recommendations)
   };
 }
@@ -232,15 +270,19 @@ export async function runSolutionAnalysis(request: AnalysisRequest) {
     const sources = selectedOrDomainSources(data, sourceSet, ["budget", "exhibit", "document"]);
     const sourcePaths = new Set(sources.map((source) => source.relativePath));
     const lines = data.budgetLines.filter((line) => !sourcePaths.size || sourcePaths.has(line.source));
-    const rows = (lines.length ? lines : data.budgetLines).slice(0, 1500);
+    const rows = lines.length ? lines : data.budgetLines;
     const total = rows.reduce((sum, line) => sum + line.amount, 0);
     const topLine = [...rows].sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))[0];
+    const accounts = new Set(rows.map((line) => line.accountTitle || line.account));
+    const scenarios = [...new Set(rows.map((line) => line.scenario || "Unspecified"))].slice(0, 8);
+    const displayedRows = [...rows].sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount)).slice(0, 20);
+    const corpusProfile = makeCorpusProfile({ rowsEvaluated: rows.length, sourceCount: sources.length, entityCount: accounts.size, totalSignal: total, selectedSourceCount: request.selectedSources.length, outputRows: displayedRows.length });
     return attachNarrative(solutionId, {
       solution,
       model,
       target: request.target || "FY delta",
       horizon: request.horizon,
-      summary: `Modeled ${numberCompact(rows.length)} budget observations across ${sources.length} source candidate(s). Current target signal totals ${money(total)} with ${topLine?.accountTitle ?? "no account"} as the highest-impact account.`,
+      summary: `Modeled the complete matching budget corpus of ${numberCompact(rows.length)} observations across ${sources.length} source candidate(s). Current target signal totals ${money(total)} with ${topLine?.accountTitle ?? "no account"} as the highest-impact account. Scenario coverage includes ${scenarios.join(", ")}.`,
       diagnostics: { trainingRows: rows.length, sourceCount: sources.length, confidence: confidence(rows.length, sources.length), backtest: "Variance holdout by FY/scenario", lift: "2.4x driver separation" },
       drivers: [
         impact("Account title", 31),
@@ -249,7 +291,7 @@ export async function runSolutionAnalysis(request: AnalysisRequest) {
         impact("Fiscal year", 14),
         impact("Source exhibit", 12)
       ],
-      outputs: rows.slice(0, 12).map((line) => ({
+      outputs: displayedRows.map((line) => ({
         entity: line.programTitle || line.accountTitle,
         score: Math.min(99, Math.round(Math.abs(line.amount) / Math.max(Math.abs(topLine?.amount ?? 1), 1) * 100)),
         value: money(line.amount),
@@ -261,7 +303,19 @@ export async function runSolutionAnalysis(request: AnalysisRequest) {
         "Persist scenario, fiscal year, source exhibit, and account keys before model promotion.",
         "Add appropriations and enactment status as supervised features when live ingestion is connected."
       ]
-    }, sources);
+    }, sources, data, {
+      corpusProfile,
+      keyFindings: [
+        `Full-corpus budget review covered ${rows.length.toLocaleString()} records, ${accounts.size.toLocaleString()} account/program groupings, and ${sources.length} source candidates.`,
+        `${topLine?.accountTitle ?? "The leading account"} is the largest absolute signal at ${money(topLine?.amount ?? 0)} and should receive a variance narrative before leadership review.`,
+        `Scenario coverage (${scenarios.join(", ")}) should be preserved in Neon so request, actual, enacted, and spend-plan views do not collapse into one number.`
+      ],
+      riskRegister: [
+        "Large account movements without explanatory drivers create budget-justification and congressional-question risk.",
+        "Mixing dollars-in-thousands and dollars-as-reported can distort appropriation totals unless normalized at ingestion.",
+        "Source exhibit lineage must be retained for every line because DoD budget books are evidence, not merely metadata."
+      ]
+    });
   }
 
   if (solutionId === "ml-anomaly-detection") {
@@ -270,12 +324,18 @@ export async function runSolutionAnalysis(request: AnalysisRequest) {
     const awards = data.awardTransactions.filter((award) => !sourcePaths.size || sourcePaths.has(award.source));
     const rows = awards.length ? awards : data.awardTransactions;
     const top = [...rows].sort((a, b) => Math.abs(b.obligation) - Math.abs(a.obligation))[0];
+    const negativeRows = rows.filter((award) => award.obligation < 0);
+    const missingRecipients = rows.filter((award) => !award.recipient || award.recipient === "Unspecified");
+    const recipients = new Set(rows.map((award) => award.recipient || "Missing recipient"));
+    const total = rows.reduce((sum, award) => sum + award.obligation, 0);
+    const displayedRows = [...rows].sort((a, b) => Math.abs(b.obligation) - Math.abs(a.obligation)).slice(0, 20);
+    const corpusProfile = makeCorpusProfile({ rowsEvaluated: rows.length, sourceCount: sources.length, entityCount: recipients.size, totalSignal: total, selectedSourceCount: request.selectedSources.length, outputRows: displayedRows.length });
     return attachNarrative(solutionId, {
       solution,
       model,
       target: request.target || "Anomaly severity",
       horizon: request.horizon,
-      summary: `Scored ${numberCompact(rows.length)} award rows for deobligation, concentration, missing-recipient, and amount outlier risk. Highest absolute action is ${top ? money(top.obligation) : "$0"}.`,
+      summary: `Scored the complete matching award corpus of ${numberCompact(rows.length)} rows for deobligation, concentration, missing-recipient, and amount outlier risk. Highest absolute action is ${top ? money(top.obligation) : "$0"}; ${negativeRows.length.toLocaleString()} negative actions and ${missingRecipients.length.toLocaleString()} missing-recipient rows require triage.`,
       diagnostics: { trainingRows: rows.length, sourceCount: sources.length, confidence: confidence(rows.length, sources.length), backtest: "Unsupervised contamination benchmark", lift: "3.1x exception enrichment" },
       drivers: [
         impact("Obligation magnitude", 35),
@@ -284,7 +344,7 @@ export async function runSolutionAnalysis(request: AnalysisRequest) {
         impact("Missing counterparty", 14, "negative"),
         impact("Object class", 10)
       ],
-      outputs: rows.slice(0, 12).map((award) => ({
+      outputs: displayedRows.map((award) => ({
         entity: award.recipient || "Missing recipient",
         score: Math.min(99, Math.round(Math.abs(award.obligation) / Math.max(Math.abs(top?.obligation ?? 1), 1) * 100)),
         value: money(award.obligation),
@@ -296,18 +356,34 @@ export async function runSolutionAnalysis(request: AnalysisRequest) {
         "Add recipient identifiers and award lifecycle stage before automated alerting.",
         "Use reviewer feedback to label false positives and improve threshold calibration."
       ]
-    }, sources);
+    }, sources, data, {
+      corpusProfile,
+      keyFindings: [
+        `Full-corpus award review covered ${rows.length.toLocaleString()} transactions/subawards and ${recipients.size.toLocaleString()} recipient groupings.`,
+        `${negativeRows.length.toLocaleString()} negative actions should be separated into deobligation, correction, closeout, and data-quality review queues.`,
+        `${missingRecipients.length.toLocaleString()} rows with weak recipient signal reduce explainability and should be enriched before automated alerting.`
+      ],
+      riskRegister: [
+        "Negative obligations can be valid, but unexplained negative actions create closeout, expired-year, and obligation-validity review risk.",
+        "Recipient concentration without lifecycle context can mislead leadership unless award purpose and office ownership are shown.",
+        "Missing or inconsistent award identifiers reduce reconciliation quality between USAspending, accounting, and procurement systems."
+      ]
+    });
   }
 
   if (solutionId === "audit-readiness-assistant") {
     const sources = selectedOrDomainSources(data, sourceSet, ["document"]);
+    const findings = data.auditFindings;
+    const openFindings = findings.filter((finding) => finding.status === "open");
+    const highRisk = findings.filter((finding) => finding.risk === "high");
+    const corpusProfile = makeCorpusProfile({ rowsEvaluated: findings.length + data.auditDocuments.reduce((sum, doc) => sum + (doc.pages || 1), 0), sourceCount: sources.length, entityCount: findings.length, totalSignal: highRisk.length, selectedSourceCount: request.selectedSources.length, outputRows: findings.length });
     return attachNarrative(solutionId, {
       solution,
       model,
       target: request.target || "Control readiness",
       horizon: request.horizon,
-      summary: `Mapped ${data.auditFindings.length} readiness findings and ${data.auditDocuments.length} audit documents into control, evidence, risk, and due-date signals.`,
-      diagnostics: { trainingRows: data.auditFindings.length, sourceCount: sources.length, confidence: confidence(data.auditFindings.length * 30, sources.length), backtest: "Control-status stratification", lift: "2.0x evidence triage precision" },
+      summary: `Mapped the full audit-readiness corpus of ${findings.length} findings and ${data.auditDocuments.length} audit document(s) into control, evidence, risk, and due-date signals. ${openFindings.length} finding(s) remain open and ${highRisk.length} are high risk.`,
+      diagnostics: { trainingRows: findings.length, sourceCount: sources.length, confidence: confidence(findings.length * 30, sources.length), backtest: "Control-status stratification", lift: "2.0x evidence triage precision" },
       drivers: [
         impact("Finding risk", 29),
         impact("Control evidence", 25),
@@ -315,7 +391,7 @@ export async function runSolutionAnalysis(request: AnalysisRequest) {
         impact("Due date", 15),
         impact("Parser status", 10)
       ],
-      outputs: data.auditFindings.map((finding) => ({
+      outputs: findings.map((finding) => ({
         entity: finding.area,
         score: finding.risk === "high" ? 91 : finding.risk === "medium" ? 68 : 38,
         value: `${finding.status}/${finding.risk}`,
@@ -327,19 +403,37 @@ export async function runSolutionAnalysis(request: AnalysisRequest) {
         "Use document snippets as evidence records rather than static PDF references.",
         "Add approval workflow before production audit-readiness scoring."
       ]
-    }, sources);
+    }, sources, data, {
+      corpusProfile,
+      keyFindings: [
+        `Full audit review covered ${findings.length} readiness findings plus document-level theme evidence from ${data.auditDocuments.length} audit documents.`,
+        `${openFindings.length} open finding(s) require owner, evidence binder, corrective action plan, and retest date.`,
+        `${highRisk.length} high-risk area(s) should be tied to A-123/Green Book criteria before status is presented as ready.`
+      ],
+      riskRegister: [
+        "Control status without evidence sufficiency can overstate audit readiness.",
+        "Finding closure should require retesting evidence, not only management assertion.",
+        "Document snippets should preserve source, page/section when available, extraction timestamp, and parser version."
+      ]
+    });
   }
 
   if (solutionId === "finops-cockpit") {
     const sources = selectedOrDomainSources(data, sourceSet, ["awards"]);
+    const sourcePaths = new Set(sources.map((source) => source.relativePath));
+    const transactions = data.awardTransactions.filter((award) => !sourcePaths.size || sourcePaths.has(award.source));
+    const fullRows = transactions.length ? transactions : data.awardTransactions;
     const rows = data.awardInsights.byRecipient;
+    const total = fullRows.reduce((sum, award) => sum + award.obligation, 0);
+    const agencies = new Set(fullRows.map((award) => award.subAgency || award.agency));
+    const corpusProfile = makeCorpusProfile({ rowsEvaluated: fullRows.length, sourceCount: sources.length, entityCount: agencies.size, totalSignal: total, selectedSourceCount: request.selectedSources.length, outputRows: Math.min(rows.length, 20) });
     return attachNarrative(solutionId, {
       solution,
       model,
       target: request.target || "Obligation amount",
       horizon: request.horizon,
-      summary: `Profiled obligations by recipient, agency, state, object class, and action month. Top recipient is ${rows[0]?.name ?? "unavailable"} at ${money(rows[0]?.value ?? 0)}.`,
-      diagnostics: { trainingRows: data.awardInsights.totalRows, sourceCount: sources.length, confidence: confidence(data.awardInsights.totalRows, sources.length), backtest: "Monthly action-period validation", lift: "2.7x portfolio segmentation" },
+      summary: `Profiled the complete matching FinOps corpus of ${numberCompact(fullRows.length)} rows by recipient, agency, state, object class, and action month. Top recipient is ${rows[0]?.name ?? "unavailable"} at ${money(rows[0]?.value ?? 0)}; total obligation signal is ${money(total)}.`,
+      diagnostics: { trainingRows: fullRows.length, sourceCount: sources.length, confidence: confidence(fullRows.length, sources.length), backtest: "Monthly action-period validation", lift: "2.7x portfolio segmentation" },
       drivers: [
         impact("Recipient", 33),
         impact("Agency", 22),
@@ -347,7 +441,7 @@ export async function runSolutionAnalysis(request: AnalysisRequest) {
         impact("State", 15),
         impact("Action month", 12)
       ],
-      outputs: rows.slice(0, 12).map((recipient) => ({
+      outputs: rows.slice(0, 20).map((recipient) => ({
         entity: recipient.name,
         score: Math.min(99, Math.round(recipient.value / Math.max(rows[0]?.value ?? 1, 1) * 100)),
         value: money(recipient.value),
@@ -359,17 +453,32 @@ export async function runSolutionAnalysis(request: AnalysisRequest) {
         "Connect award lifecycle status to separate expected concentration from unusual concentration.",
         "Create drilldowns by recipient, office, object class, and state."
       ]
-    }, sources);
+    }, sources, data, {
+      corpusProfile,
+      keyFindings: [
+        `Full FinOps run reviewed ${fullRows.length.toLocaleString()} award records across ${agencies.size.toLocaleString()} agency/subagency groupings.`,
+        `${rows[0]?.name ?? "Top recipient"} is the leading counterparty signal and should be reviewed for program purpose, office ownership, and obligation timing.`,
+        "Portfolio interpretation should separate contracts, assistance, prime actions, and subawards before leadership conclusions."
+      ],
+      riskRegister: [
+        "High concentration can be normal for defense programs, but it needs program context and office accountability.",
+        "Award action month patterns can hide late-year obligation pressure or deobligation cleanup.",
+        "Object class and NAICS/program labels need standardization before forecasting."
+      ]
+    });
   }
 
   if (solutionId === "document-intelligence") {
     const sources = selectedOrDomainSources(data, sourceSet, ["document", "exhibit", "budget"]);
+    const auditDocs = data.auditDocuments.filter((doc) => sources.some((source) => source.relativePath === doc.source));
+    const pages = auditDocs.reduce((sum, doc) => sum + (doc.pages || 0), 0);
+    const corpusProfile = makeCorpusProfile({ rowsEvaluated: sources.length + pages, sourceCount: sources.length, entityCount: sources.length, totalSignal: pages, selectedSourceCount: request.selectedSources.length, outputRows: Math.min(sources.length, 20) });
     return attachNarrative(solutionId, {
       solution,
       model,
       target: request.target || "Document theme",
       horizon: request.horizon,
-      summary: `Ranked ${sources.length} document/exhibit source candidate(s) for extraction, summarization, evidence reuse, and source-grounded Q&A.`,
+      summary: `Reviewed the complete selected document/exhibit candidate set of ${sources.length} source(s), including ${pages.toLocaleString()} parsed audit/document page signals where available, for extraction, summarization, evidence reuse, and source-grounded Q&A.`,
       diagnostics: { trainingRows: sources.length, sourceCount: sources.length, confidence: confidence(sources.length * 100, sources.length), backtest: "Extraction-readiness heuristic", lift: "1.9x evidence retrieval quality" },
       drivers: [
         impact("File type", 26),
@@ -378,7 +487,7 @@ export async function runSolutionAnalysis(request: AnalysisRequest) {
         impact("Parser status", 17),
         impact("Source family", 15)
       ],
-      outputs: sources.slice(0, 12).map((source) => ({
+      outputs: sources.slice(0, 20).map((source) => ({
         entity: source.name,
         score: source.status === "parsed" ? 86 : 54,
         value: `${source.extension.toUpperCase()} / ${source.fiscalYear}`,
@@ -390,10 +499,23 @@ export async function runSolutionAnalysis(request: AnalysisRequest) {
         "Extract tables into normalized budget/document fact tables.",
         "Track page, section, source path, and parser version for every extracted fact."
       ]
-    }, sources);
+    }, sources, data, {
+      corpusProfile,
+      keyFindings: [
+        `Document run covered ${sources.length} candidate source files and ${pages.toLocaleString()} parsed page signals where extractable text exists.`,
+        "PDFs should be chunked by page/section and embedded only after source path, fiscal year, domain, and parser version are stored.",
+        "Spreadsheet and JSON exhibits should be treated as structured evidence first, not summarized as free text."
+      ],
+      riskRegister: [
+        "Document summaries without page/section references are not audit-ready evidence.",
+        "Table extraction needs row/column provenance to avoid losing exhibit meaning.",
+        "Embedding refresh must be tied to source signature changes or stale chunks will mislead search results."
+      ]
+    });
   }
 
   const sources = selectedOrDomainSources(data, sourceSet, ["awards", "budget", "document", "exhibit"]);
+  const corpusProfile = makeCorpusProfile({ rowsEvaluated: sources.length, sourceCount: sources.length, entityCount: new Set(sources.map((source) => source.domain)).size, totalSignal: sources.length, selectedSourceCount: request.selectedSources.length, outputRows: Math.min(sources.length, 20) });
   return attachNarrative(solutionId, {
     solution,
     model,
@@ -408,7 +530,7 @@ export async function runSolutionAnalysis(request: AnalysisRequest) {
       impact("File size", 16),
       impact("Fiscal year", 14)
     ],
-    outputs: sources.slice(0, 12).map((source) => ({
+    outputs: sources.slice(0, 20).map((source) => ({
       entity: source.relativePath,
       score: source.status === "parsed" ? 88 : 52,
       value: `${source.domain}/${source.extension}`,
@@ -420,5 +542,17 @@ export async function runSolutionAnalysis(request: AnalysisRequest) {
       "Gate production refresh on row-count, source-signature, and schema-drift checks.",
       "Add GitHub Action or Vercel cron jobs once cloud storage and Neon are configured."
     ]
-  }, sources);
+  }, sources, data, {
+    corpusProfile,
+    keyFindings: [
+      `Lineage run covered ${sources.length} source records across ${new Set(sources.map((source) => source.domain)).size} data domains.`,
+      "Source signature and parser status should become first-class deployment gates.",
+      "Neon model_runs and document_chunks tables are now defined so generated reports and future embeddings can be persisted."
+    ],
+    riskRegister: [
+      "Without row-count and schema-drift checks, new source files can silently change dashboard meaning.",
+      "Without document chunks, AI answers cannot reliably cite page/section-level evidence.",
+      "Without model run storage, model outputs cannot be audited or compared over time."
+    ]
+  });
 }

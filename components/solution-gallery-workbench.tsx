@@ -37,8 +37,21 @@ type AnalysisPayload = {
   recommendations: string[];
   executiveSummary: string;
   sourceBrief: Array<{ name: string; path: string; domain: string; type: string; fiscalYear: string; status: string; role: string }>;
+  sourceCoverage: Array<{ source: string; domain: string; status: string; rowsEvaluated: number; amount: string; evidenceSignal: string }>;
   modelMethodology: string[];
   actionItems: Array<{ priority: string; owner: string; action: string; evidenceNeeded: string }>;
+  keyFindings: string[];
+  riskRegister: string[];
+  corpusProfile: {
+    rowsEvaluated: number;
+    sourceCount: number;
+    entityCount: number;
+    selectedSourceCount: number;
+    totalSignal: string;
+    outputRowsDisplayed: number;
+    wholeCorpusStatement: string;
+  };
+  persistence?: { persisted: boolean; id?: number; reason?: string };
 };
 
 const iconMap = {
@@ -164,7 +177,7 @@ export function SolutionGalleryWorkbench({ solutions, models, sources }: { solut
             <p>{analysis.summary}</p>
             <div className="pill-row">
               <span className="pill">Confidence {analysis.diagnostics.confidence}%</span>
-              <span className="pill">{analysis.diagnostics.trainingRows.toLocaleString()} rows</span>
+              <span className="pill">{analysis.corpusProfile.rowsEvaluated.toLocaleString()} rows reviewed</span>
               <span className="pill">{analysis.diagnostics.sourceCount} sources</span>
             </div>
           </article>
@@ -212,6 +225,12 @@ export function SolutionGalleryWorkbench({ solutions, models, sources }: { solut
           <article className="card report-block">
             <h2>Executive Summary</h2>
             <p>{analysis.executiveSummary}</p>
+            <p>{analysis.corpusProfile.wholeCorpusStatement}</p>
+            <div className="pill-row">
+              <span className="pill">Total signal {analysis.corpusProfile.totalSignal}</span>
+              <span className="pill">{analysis.corpusProfile.entityCount.toLocaleString()} entities</span>
+              <span className="pill">{analysis.persistence?.persisted ? `Saved run #${analysis.persistence.id}` : "Local run not persisted"}</span>
+            </div>
           </article>
 
           <div className="signal-grid solution-signals">
@@ -239,6 +258,27 @@ export function SolutionGalleryWorkbench({ solutions, models, sources }: { solut
                   {analysis.sourceBrief.map((source) => (
                     <li key={source.path}>{source.name}: {source.role}; {source.domain}/{source.type}; FY{source.fiscalYear}; {source.status}.</li>
                   ))}
+                </ul>
+              </article>
+            </div>
+          </section>
+
+          <section className="card report-block">
+            <div className="section-head">
+              <h2>Expert Findings And Risk Register</h2>
+              <span className="pill">Federal financial management readout</span>
+            </div>
+            <div className="knowledge-grid">
+              <article className="knowledge-section">
+                <h3>Key findings</h3>
+                <ul>
+                  {analysis.keyFindings.map((item) => <li key={item}>{item}</li>)}
+                </ul>
+              </article>
+              <article className="knowledge-section">
+                <h3>Risk register</h3>
+                <ul>
+                  {analysis.riskRegister.map((item) => <li key={item}>{item}</li>)}
                 </ul>
               </article>
             </div>
@@ -277,6 +317,39 @@ export function SolutionGalleryWorkbench({ solutions, models, sources }: { solut
                       <td>{row.value}</td>
                       <td>{row.evidence}</td>
                       <td>{row.action}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section className="card report-block">
+            <div className="section-head">
+              <h2>Source Coverage</h2>
+              <span className="pill">Whole-document/corpus check</span>
+            </div>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Source</th>
+                    <th>Domain</th>
+                    <th>Status</th>
+                    <th>Rows/Page Signals</th>
+                    <th>Amount</th>
+                    <th>Evidence signal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {analysis.sourceCoverage.map((source) => (
+                    <tr key={source.source}>
+                      <td>{source.source}</td>
+                      <td>{source.domain}</td>
+                      <td>{source.status}</td>
+                      <td>{source.rowsEvaluated.toLocaleString()}</td>
+                      <td>{source.amount}</td>
+                      <td>{source.evidenceSignal}</td>
                     </tr>
                   ))}
                 </tbody>
