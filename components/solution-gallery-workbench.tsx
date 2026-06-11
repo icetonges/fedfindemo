@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Bot, Brain, FileText, GitBranch, LineChart, Play, ShieldCheck } from "lucide-react";
 
 type SourceCandidate = {
@@ -60,6 +60,8 @@ export function SolutionGalleryWorkbench({ solutions, models, sources }: { solut
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const [analysis, setAnalysis] = useState<AnalysisPayload | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const resultRef = useRef<HTMLDivElement | null>(null);
 
   const candidateSources = useMemo(() => {
     return sources.filter((source) => domain === "all" || source.domain === domain).slice(0, 80);
@@ -79,14 +81,23 @@ export function SolutionGalleryWorkbench({ solutions, models, sources }: { solut
 
   async function runAnalysis() {
     setLoading(true);
-    const response = await fetch("/api/solutions/analyze", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ solutionId, modelId, target, horizon, selectedSources })
-    });
-    const payload = await response.json();
-    setAnalysis(payload);
-    setLoading(false);
+    setError("");
+    try {
+      const response = await fetch("/api/solutions/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ solutionId, modelId, target, horizon, selectedSources })
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error ?? "The solution analysis request failed.");
+      setAnalysis(payload);
+      window.setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+    } catch (caught) {
+      setAnalysis(null);
+      setError(caught instanceof Error ? caught.message : "The solution analysis request failed.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -132,6 +143,29 @@ export function SolutionGalleryWorkbench({ solutions, models, sources }: { solut
           </select>
         </div>
 
+        {error ? (
+          <article className="list-item result-preview error-preview">
+            <h3>Analysis did not run</h3>
+            <p>{error}</p>
+          </article>
+        ) : null}
+
+        {analysis ? (
+          <article className="list-item result-preview">
+            <div className="pill-row">
+              <span className="status ready">Generated</span>
+              <span className="mini">{analysis.model.label} . {analysis.target}</span>
+            </div>
+            <h3>{analysis.solution.title}</h3>
+            <p>{analysis.summary}</p>
+            <div className="pill-row">
+              <span className="pill">Confidence {analysis.diagnostics.confidence}%</span>
+              <span className="pill">{analysis.diagnostics.trainingRows.toLocaleString()} rows</span>
+              <span className="pill">{analysis.diagnostics.sourceCount} sources</span>
+            </div>
+          </article>
+        ) : null}
+
         <div className="dataset-picker">
           <div className="section-head">
             <h3>Dataset Candidates</h3>
@@ -161,7 +195,7 @@ export function SolutionGalleryWorkbench({ solutions, models, sources }: { solut
       </section>
 
       {analysis ? (
-        <section className="grid cols-2">
+        <section className="grid cols-2 analysis-panel" ref={resultRef}>
           <div className="section">
             <div className="section-head">
               <h2>Model Run</h2>
