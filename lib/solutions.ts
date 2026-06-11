@@ -189,7 +189,7 @@ function methodologyFor(solutionId: SolutionId, modelLabel: string, target: stri
   return [...common, ...specific[solutionId]];
 }
 
-function actionItems(solutionId: SolutionId, recommendations: string[]) {
+function actionPlans(solutionId: SolutionId, recommendations: string[]) {
   const owners: Record<SolutionId, string> = {
     "budget-analyst": "Budget analyst",
     "ml-anomaly-detection": "FinOps reviewer",
@@ -198,11 +198,89 @@ function actionItems(solutionId: SolutionId, recommendations: string[]) {
     "document-intelligence": "Document extraction lead",
     "data-lineage-view": "Data engineer"
   };
+  const rootCauses: Record<SolutionId, string[]> = {
+    "budget-analyst": [
+      "Budget variance is visible, but explanatory attributes such as scenario, account, exhibit source, program owner, and policy driver are not yet promoted into a governed variance narrative.",
+      "The current local source data can show the movement, but the business reason for the movement must be captured as analyst-reviewed evidence.",
+      "Appropriation and exhibit lineage exist in files, but they need structured persistence so the same variance can be reproduced after deployment."
+    ],
+    "ml-anomaly-detection": [
+      "Award records contain high-magnitude, negative, missing-recipient, or concentration signals that are not yet separated into valid business events versus data-quality exceptions.",
+      "The model can prioritize records, but reviewer feedback labels are not yet stored to calibrate future thresholds.",
+      "Recipient and award lifecycle context is incomplete, which makes anomaly interpretation less reliable."
+    ],
+    "audit-readiness-assistant": [
+      "Findings are identified, but control owner, evidence requirement, retest procedure, and closure criteria are not yet enforced as a complete corrective-action workflow.",
+      "Audit evidence exists as source documents and snippets, but page/section-level traceability is not yet fully persisted.",
+      "Control readiness can be overstated if status is updated before evidence sufficiency and retest results are documented."
+    ],
+    "finops-cockpit": [
+      "Obligation concentration and portfolio patterns are visible, but they are not yet connected to obligation plans, program purpose, contract lifecycle, or office accountability.",
+      "Monthly action behavior may indicate valid execution timing or late-year pressure; the current data needs reviewer classification.",
+      "Forecasting needs normalized action month, recipient, agency, object class, and award-type features before operational use."
+    ],
+    "document-intelligence": [
+      "Documents and exhibits are inventoried, but extraction outputs need chunk, page, section, parser version, and evidence metadata before AI answers can be audit-ready.",
+      "PDFs, JSON, and spreadsheets need different extraction treatment; summarizing all of them as plain text loses important structure.",
+      "Embedding refresh is not yet tied to source signature change, creating stale-evidence risk."
+    ],
+    "data-lineage-view": [
+      "Source inventory exists, but source-to-table lineage, validation results, schema drift, and parser version are not yet enforced as production gates.",
+      "Local files can change outside deployment, so lineage must be checked at ingestion and render time.",
+      "Model outputs cannot be audited over time unless run parameters and corpus profiles are stored."
+    ]
+  };
+  const timelines = ["0-2 business days", "3-7 business days", "8-15 business days"];
+  const stepCatalog: Record<SolutionId, string[][]> = {
+    "budget-analyst": [
+      ["Open the highest-impact account/program line from the ranked output.", "Confirm fiscal year, scenario, appropriation family, source exhibit, and amount normalization.", "Write a variance narrative that separates policy change, program growth, inflation, transfer, reclassification, new start, termination, and execution carryover.", "Attach source path and exhibit line evidence to the narrative.", "Route to budget owner for concurrence and mark unresolved drivers as open questions."],
+      ["Create a Neon-ready variance record with account, scenario, fiscal years compared, dollar delta, percent delta, source exhibit, analyst note, and reviewer status.", "Add validation checks for dollars-in-thousands handling and duplicate exhibit rows.", "Generate a repeatable dashboard filter for the same variance.", "Store final disposition in model_runs or a future budget_variance_reviews table."],
+      ["Add appropriation, enactment status, reprogramming flags, and spend-plan assumptions as features.", "Backtest the variance-driver model against prior FY movement.", "Define alert thresholds for leadership-level budget changes.", "Create an approval workflow for promoted budget insights."]
+    ],
+    "ml-anomaly-detection": [
+      ["Export the highest-scored anomaly records from the model output.", "Classify each record as valid business event, timing issue, deobligation, correction, closeout, or data-quality defect.", "Document the reviewer rationale and required supporting evidence.", "Escalate high-dollar negative actions to obligation-validity review.", "Separate missing-recipient issues into data enrichment backlog."],
+      ["Create feedback labels for true positive, false positive, valid exception, and data issue.", "Persist labels with award ID, recipient, obligation, source file, reviewer, timestamp, and disposition.", "Recompute thresholds using labeled examples.", "Add a dashboard view for aging unresolved exceptions."],
+      ["Add recipient enrichment, award lifecycle stage, contract closeout status, and office ownership.", "Create model monitoring for drift in anomaly volume by source file and month.", "Define production controls for alert fatigue and reviewer capacity.", "Publish monthly exception trend analysis."]
+    ],
+    "audit-readiness-assistant": [
+      ["For each high-risk/open finding, identify the control objective, owner, system, evidence artifact, and test procedure.", "Map the finding to A-123, GAO Green Book principle, DoD FMR citation, or audit report criteria.", "Create a corrective-action milestone with due date and validation evidence.", "Collect evidence and attach source path/page/section when available.", "Schedule retest and document pass/fail criteria."],
+      ["Build a control matrix with finding, control activity, frequency, evidence requirement, owner, status, and retest result.", "Separate management assertion from auditor-verifiable evidence.", "Create aging buckets for overdue corrective actions.", "Add escalation rules for repeated slippage or missing evidence."],
+      ["Create document chunks for audit PDFs and AFR sections.", "Embed chunks after source signature validation.", "Add semantic search for control evidence and finding criteria.", "Persist closure packages for audit trail and leadership review."]
+    ],
+    "finops-cockpit": [
+      ["Review top recipient/agency concentration records and confirm program purpose.", "Compare action month behavior against expected obligation phasing.", "Identify whether concentration is planned, mission-driven, late-year pressure, or data-quality artifact.", "Document office owner and award lifecycle context.", "Flag records requiring reconciliation to accounting or procurement systems."],
+      ["Create monthly burn-rate baselines by recipient, agency, object class, and award type.", "Add variance thresholds for obligation spikes and deobligation cleanup.", "Create exception queue for records missing purpose, office, or lifecycle stage.", "Document reviewer disposition and recurring causes."],
+      ["Connect award records to accounting events, payment status, and closeout status.", "Create portfolio forecasts with confidence intervals.", "Monitor drift in recipient concentration and action timing.", "Publish executive FinOps briefing with open exceptions and resolved items."]
+    ],
+    "document-intelligence": [
+      ["Identify selected documents and classify each as PDF narrative, spreadsheet exhibit, JSON budget book, award CSV, or audit evidence.", "For PDFs, split by page/section and capture page-level citation metadata.", "For spreadsheets, preserve sheet, row, column, header, and fiscal-year structure.", "For JSON, retain hierarchy, labels, numeric facts, and source node path.", "Create extraction notes for low-confidence or non-readable pages."],
+      ["Load document chunks into Neon with source path, chunk index, heading, content, fiscal year, domain, parser metadata, and token estimate.", "Generate embeddings only after the source signature is stable.", "Create validation checks for chunk count, empty chunks, duplicate chunks, and stale embeddings.", "Expose citation-aware retrieval to AI Analyst and Solution Gallery."],
+      ["Create document QA benchmarks with expected answers and citations.", "Measure retrieval quality, missing-page rate, stale-chunk rate, and hallucination risk.", "Add reviewer approval before chunks become production evidence.", "Schedule re-embedding on source change."]
+    ],
+    "data-lineage-view": [
+      ["For each source file, confirm path, domain, type, fiscal year, parser status, size, modified time, and source signature.", "Map each source to target tables and dashboard/API consumers.", "Document row counts, rejected rows, required fields, and validation warnings.", "Flag source files without parser coverage or unclear destination.", "Create a remediation backlog for schema drift or missing metadata."],
+      ["Load source_documents, document_chunks, budget_lines, award_transactions, audit_findings, anomalies, and model_runs into Neon.", "Add ingestion run records with status, started/finished timestamps, records loaded, and validation details.", "Gate deployment on source signature, row count, schema validation, and parser warnings.", "Create a lineage API for every KPI and AI answer."],
+      ["Add scheduled ingestion and validation jobs.", "Create data quality scorecards by domain and source family.", "Persist model-run lineage so output changes can be explained over time.", "Define production incident procedures for source drift and failed ingestion."]
+    ]
+  };
   return recommendations.map((item, index) => ({
     priority: index === 0 ? "High" : index === 1 ? "Medium" : "Watch",
     owner: owners[solutionId],
     action: item,
-    evidenceNeeded: index === 0 ? "Source file, filtered result set, and reviewer disposition" : "Updated lineage note and validation result"
+    rootCause: rootCauses[solutionId][index] ?? rootCauses[solutionId][0],
+    timeline: timelines[index] ?? "15+ business days",
+    steps: stepCatalog[solutionId][index] ?? stepCatalog[solutionId][0],
+    acceptanceCriteria: [
+      "The action is tied to at least one source path or model output row.",
+      "A reviewer can reproduce the issue using the same filter, source signature, and model run.",
+      "Evidence, owner, due date, and disposition are captured before the item is marked complete."
+    ],
+    evidenceNeeded: index === 0 ? "Source file, full-corpus profile, ranked output excerpt, reviewer disposition, and source coverage table." : "Updated lineage note, validation result, and reviewer-approved closure evidence.",
+    dependencies: [
+      "Current source snapshot remains available.",
+      "Neon model_runs and document_chunks schema is applied when persistence is required.",
+      "Business owner or reviewer is assigned for final disposition."
+    ]
   }));
 }
 
@@ -235,7 +313,7 @@ function attachNarrative<T extends {
     sourceBrief: summarizeSources(sources),
     modelMethodology: methodologyFor(solutionId, payload.model.label, payload.target),
     sourceCoverage: sourceRecordCoverage(data, sources),
-    actionItems: actionItems(solutionId, payload.recommendations)
+    actionItems: actionPlans(solutionId, payload.recommendations)
   };
 }
 

@@ -39,7 +39,17 @@ type AnalysisPayload = {
   sourceBrief: Array<{ name: string; path: string; domain: string; type: string; fiscalYear: string; status: string; role: string }>;
   sourceCoverage: Array<{ source: string; domain: string; status: string; rowsEvaluated: number; amount: string; evidenceSignal: string }>;
   modelMethodology: string[];
-  actionItems: Array<{ priority: string; owner: string; action: string; evidenceNeeded: string }>;
+  actionItems: Array<{
+    priority: string;
+    owner: string;
+    action: string;
+    rootCause: string;
+    timeline: string;
+    steps: string[];
+    acceptanceCriteria: string[];
+    evidenceNeeded: string;
+    dependencies: string[];
+  }>;
   keyFindings: string[];
   riskRegister: string[];
   corpusProfile: {
@@ -362,27 +372,51 @@ export function SolutionGalleryWorkbench({ solutions, models, sources }: { solut
               <h2>Action Items</h2>
               <span className="pill">{analysis.actionItems.length} actions</span>
             </div>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Priority</th>
-                    <th>Owner</th>
-                    <th>Action</th>
-                    <th>Evidence needed</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {analysis.actionItems.map((item) => (
-                    <tr key={`${item.priority}-${item.action}`}>
-                      <td><span className={`status ${item.priority === "High" ? "high" : item.priority === "Medium" ? "medium" : "watch"}`}>{item.priority}</span></td>
-                      <td>{item.owner}</td>
-                      <td>{item.action}</td>
-                      <td>{item.evidenceNeeded}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="action-plan-list">
+              {analysis.actionItems.map((item, index) => (
+                <article className="action-plan" key={`${item.priority}-${item.action}`}>
+                  <div className="section-head">
+                    <div>
+                      <div className="pill-row">
+                        <span className={`status ${item.priority === "High" ? "high" : item.priority === "Medium" ? "medium" : "watch"}`}>{item.priority}</span>
+                        <span className="pill">{item.timeline}</span>
+                        <span className="pill">{item.owner}</span>
+                      </div>
+                      <h3>{index + 1}. {item.action}</h3>
+                    </div>
+                  </div>
+                  <div className="knowledge-grid">
+                    <section className="knowledge-section">
+                      <h3>Root Cause Analysis</h3>
+                      <p>{item.rootCause}</p>
+                    </section>
+                    <section className="knowledge-section">
+                      <h3>Evidence Needed</h3>
+                      <p>{item.evidenceNeeded}</p>
+                    </section>
+                  </div>
+                  <section className="knowledge-section">
+                    <h3>Execution Steps</h3>
+                    <ol>
+                      {item.steps.map((step) => <li key={step}>{step}</li>)}
+                    </ol>
+                  </section>
+                  <div className="knowledge-grid">
+                    <section className="knowledge-section">
+                      <h3>Acceptance Criteria</h3>
+                      <ul>
+                        {item.acceptanceCriteria.map((criterion) => <li key={criterion}>{criterion}</li>)}
+                      </ul>
+                    </section>
+                    <section className="knowledge-section">
+                      <h3>Dependencies</h3>
+                      <ul>
+                        {item.dependencies.map((dependency) => <li key={dependency}>{dependency}</li>)}
+                      </ul>
+                    </section>
+                  </div>
+                </article>
+              ))}
             </div>
           </section>
         </section>
