@@ -1,5 +1,7 @@
 import { Workflow } from "lucide-react";
+import { KnowledgePanel } from "@/components/knowledge-panel";
 import { SolutionGalleryWorkbench } from "@/components/solution-gallery-workbench";
+import { knowledgePlaybooks } from "@/lib/knowledge-content";
 import { getSolutionMetadata } from "@/lib/solutions";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +20,8 @@ export default async function SolutionGalleryPage() {
         </div>
         <span className="pill"><Workflow size={14} /> {metadata.sources.length} source candidates</span>
       </header>
+
+      <KnowledgePanel playbook={knowledgePlaybooks.solutions} />
 
       <SolutionGalleryWorkbench solutions={metadata.solutions} models={metadata.models} sources={metadata.sources} />
     </div>

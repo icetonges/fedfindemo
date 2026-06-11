@@ -1,6 +1,8 @@
 import { ClipboardCheck, FileSearch, ShieldAlert, TimerReset } from "lucide-react";
 import { AuditQueryExplorer } from "@/components/audit-query-explorer";
+import { KnowledgePanel } from "@/components/knowledge-panel";
 import { MetricCard } from "@/components/metric-card";
+import { knowledgePlaybooks } from "@/lib/knowledge-content";
 import { getLocalDataSnapshot, numberCompact } from "@/lib/source-data";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +31,8 @@ export default async function AuditReadinessPage() {
         <MetricCard icon={ClipboardCheck} label="Ready controls" value={numberCompact(ready)} detail="Controls with current evidence in the local source inventory." href="/insights/audit" />
         <MetricCard icon={FileSearch} label="Audit PDFs parsed" value={numberCompact(evidenceSources)} detail="Audit and financial report PDFs are scanned for control themes and finding language." href="/insights/audit" />
       </section>
+
+      <KnowledgePanel playbook={knowledgePlaybooks.audit} />
 
       <section className="grid cols-2">
         {data.auditDocuments.map((doc) => (

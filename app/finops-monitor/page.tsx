@@ -2,7 +2,9 @@ import { AlertOctagon, BadgeDollarSign, Building2, Receipt } from "lucide-react"
 import { BarPanel } from "@/components/charts";
 import { AwardQueryExplorer } from "@/components/award-query-explorer";
 import { FilteredChartPanel } from "@/components/filtered-chart-panel";
+import { KnowledgePanel } from "@/components/knowledge-panel";
 import { MetricCard } from "@/components/metric-card";
+import { knowledgePlaybooks } from "@/lib/knowledge-content";
 import { getLocalDataSnapshot, money, numberCompact } from "@/lib/source-data";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +36,8 @@ export default async function FinOpsMonitorPage() {
       </section>
 
       <FilteredChartPanel title="Award time and source slice" scope="awards" defaultGroupBy="month" />
+
+      <KnowledgePanel playbook={knowledgePlaybooks.finops} />
 
       <section className="grid cols-2">
         <BarPanel title="Most frequent award counterparties" data={vendors} />

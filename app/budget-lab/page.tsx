@@ -1,7 +1,9 @@
 import { BookOpenCheck, FileSpreadsheet, LibraryBig, Sigma } from "lucide-react";
 import { BarPanel } from "@/components/charts";
 import { FilteredChartPanel } from "@/components/filtered-chart-panel";
+import { KnowledgePanel } from "@/components/knowledge-panel";
 import { MetricCard } from "@/components/metric-card";
+import { knowledgePlaybooks } from "@/lib/knowledge-content";
 import { BudgetQueryExplorer } from "@/components/budget-query-explorer";
 import { getLocalDataSnapshot, money, numberCompact } from "@/lib/source-data";
 
@@ -31,6 +33,8 @@ export default async function BudgetLabPage() {
       </section>
 
       <FilteredChartPanel title="Budget document and time slice" scope="budget" defaultFiscalYear="2027" defaultGroupBy="account" />
+
+      <KnowledgePanel playbook={knowledgePlaybooks.budget} />
 
       <section className="grid cols-2">
         <BarPanel title="Budget amount by FY/scenario" data={bookChart} />

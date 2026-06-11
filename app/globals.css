@@ -358,6 +358,73 @@ td {
   gap: 12px;
 }
 
+.knowledge-panel {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.knowledge-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.knowledge-section {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel) 88%, var(--bg));
+}
+
+.knowledge-section ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  line-height: 1.5;
+  font-size: 13px;
+}
+
+.knowledge-section li + li {
+  margin-top: 7px;
+}
+
+.reference-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.reference-link {
+  min-height: 72px;
+  display: grid;
+  grid-template-columns: 1fr 18px;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.reference-link strong,
+.reference-link small {
+  display: block;
+}
+
+.reference-link small {
+  color: var(--muted);
+  margin-top: 4px;
+  line-height: 1.35;
+}
+
 .chart-title {
   margin-bottom: 14px;
 }
@@ -851,6 +918,8 @@ select,
   .grid.cols-2,
   .signal-grid,
   .workbench-grid,
+  .knowledge-grid,
+  .reference-strip,
   .ai-workbench,
   .compare-results,
   .solution-grid,

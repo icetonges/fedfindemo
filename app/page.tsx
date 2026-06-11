@@ -1,8 +1,10 @@
 import { AlertTriangle, Database, FileText, Landmark, ReceiptText, ShieldCheck } from "lucide-react";
 import { AreaPanel, BarPanel } from "@/components/charts";
 import { FilteredChartPanel } from "@/components/filtered-chart-panel";
+import { KnowledgePanel } from "@/components/knowledge-panel";
 import { MissionControlWorkbench } from "@/components/mission-control-workbench";
 import { MetricCard } from "@/components/metric-card";
+import { knowledgePlaybooks } from "@/lib/knowledge-content";
 import { getLocalDataSnapshot, money, numberCompact } from "@/lib/source-data";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +38,8 @@ export default async function DashboardPage() {
       </section>
 
       <MissionControlWorkbench />
+
+      <KnowledgePanel playbook={knowledgePlaybooks.dashboard} />
 
       <section className="grid cols-2">
         <FilteredChartPanel title="Filtered budget slice" scope="budget" defaultFiscalYear="2027" defaultGroupBy="family" />

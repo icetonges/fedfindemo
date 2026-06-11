@@ -1,7 +1,9 @@
 import { CheckCircle2, CloudCog, Database, RefreshCw } from "lucide-react";
 import { BarPanel } from "@/components/charts";
 import { FilteredChartPanel } from "@/components/filtered-chart-panel";
+import { KnowledgePanel } from "@/components/knowledge-panel";
 import { MetricCard } from "@/components/metric-card";
+import { knowledgePlaybooks } from "@/lib/knowledge-content";
 import { getLocalDataSnapshot, numberCompact } from "@/lib/source-data";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +35,8 @@ export default async function DataSourcesPage() {
       </section>
 
       <FilteredChartPanel title="Source inventory slice" scope="sources" defaultGroupBy="folder" />
+
+      <KnowledgePanel playbook={knowledgePlaybooks.sources} />
 
       <section className="grid cols-2">
         <BarPanel title="Source files by source family" data={byFolder} />
