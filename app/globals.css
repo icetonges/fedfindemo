@@ -832,6 +832,17 @@ select,
   scroll-margin-top: 18px;
 }
 
+.report-flow {
+  display: grid;
+  gap: 16px;
+}
+
+.report-block {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
 .solution-controls {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }

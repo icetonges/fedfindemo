@@ -99,6 +99,108 @@ function impact(name: string, value: number, direction = "positive") {
   return { name, value: Math.round(value * 10) / 10, direction };
 }
 
+function summarizeSources(sources: SourceDocument[]) {
+  return sources.slice(0, 8).map((source) => ({
+    name: source.name,
+    path: source.relativePath,
+    domain: source.domain,
+    type: source.extension.toUpperCase(),
+    fiscalYear: source.fiscalYear,
+    status: source.status,
+    role: source.domain === "awards"
+      ? "Award transaction evidence"
+      : source.domain === "exhibit"
+        ? "Budget exhibit evidence"
+        : source.domain === "budget"
+          ? "Structured budget-book evidence"
+          : "Document and policy evidence"
+  }));
+}
+
+function methodologyFor(solutionId: SolutionId, modelLabel: string, target: string) {
+  const common = [
+    `Model selected: ${modelLabel}.`,
+    `Target being analyzed: ${target}.`,
+    "The run uses the selected source files when provided; otherwise it falls back to the source domains most relevant to the chosen solution.",
+    "Each output row keeps an evidence reference so an analyst can trace the score back to a source file, transaction, exhibit, finding, or document."
+  ];
+  const specific: Record<SolutionId, string[]> = {
+    "budget-analyst": [
+      "Budget observations are grouped by fiscal year, account, scenario, appropriation family, and source exhibit.",
+      "The model ranks drivers by their contribution to dollar variance and identifies the program/account lines most responsible for the signal."
+    ],
+    "ml-anomaly-detection": [
+      "Award rows are scored for amount magnitude, negative obligation behavior, missing recipient information, and concentration risk.",
+      "The model does not replace investigation; it prioritizes which records need analyst review first."
+    ],
+    "audit-readiness-assistant": [
+      "Audit findings are converted into control-readiness records with risk, status, evidence, and corrective-action implications.",
+      "The model aligns the finding language with evidence sufficiency and control-owner action."
+    ],
+    "finops-cockpit": [
+      "Recipient, agency, geography, NAICS/program, object class, and action-month features are used to describe spend concentration.",
+      "The model identifies portfolio segments that deserve burn-rate, obligation-validity, or closeout review."
+    ],
+    "document-intelligence": [
+      "Documents and exhibits are scored for extraction readiness, fiscal-year relevance, parser status, and evidence reuse potential.",
+      "The model output is a document triage plan for table extraction, snippet capture, and source-grounded Q&A."
+    ],
+    "data-lineage-view": [
+      "Source files are scored for parser coverage, domain coverage, refresh risk, and cloud migration readiness.",
+      "The model turns local file metadata into a source-to-table lineage plan."
+    ]
+  };
+  return [...common, ...specific[solutionId]];
+}
+
+function actionItems(solutionId: SolutionId, recommendations: string[]) {
+  const owners: Record<SolutionId, string> = {
+    "budget-analyst": "Budget analyst",
+    "ml-anomaly-detection": "FinOps reviewer",
+    "audit-readiness-assistant": "Control owner",
+    "finops-cockpit": "Financial operations lead",
+    "document-intelligence": "Document extraction lead",
+    "data-lineage-view": "Data engineer"
+  };
+  return recommendations.map((item, index) => ({
+    priority: index === 0 ? "High" : index === 1 ? "Medium" : "Watch",
+    owner: owners[solutionId],
+    action: item,
+    evidenceNeeded: index === 0 ? "Source file, filtered result set, and reviewer disposition" : "Updated lineage note and validation result"
+  }));
+}
+
+function executiveSummary(solutionId: SolutionId, summary: string, sources: SourceDocument[]) {
+  const sourceText = sources.length
+    ? `${sources.length} source candidate(s), led by ${sources[0]?.name ?? "the selected source file"}`
+    : "the current domain-default source set";
+  const lens: Record<SolutionId, string> = {
+    "budget-analyst": "budget formulation and execution variance",
+    "ml-anomaly-detection": "award and obligation exception risk",
+    "audit-readiness-assistant": "control readiness and evidence sufficiency",
+    "finops-cockpit": "financial operations concentration and portfolio behavior",
+    "document-intelligence": "document extraction and evidence reuse",
+    "data-lineage-view": "source lineage and cloud-readiness"
+  };
+  return `This run analyzes ${sourceText} through a ${lens[solutionId]} lens. ${summary}`;
+}
+
+function attachNarrative<T extends {
+  solution: typeof solutionDefinitions[number];
+  model: typeof modelCatalog[number];
+  target: string;
+  summary: string;
+  recommendations: string[];
+}>(solutionId: SolutionId, payload: T, sources: SourceDocument[]) {
+  return {
+    ...payload,
+    executiveSummary: executiveSummary(solutionId, payload.summary, sources),
+    sourceBrief: summarizeSources(sources),
+    modelMethodology: methodologyFor(solutionId, payload.model.label, payload.target),
+    actionItems: actionItems(solutionId, payload.recommendations)
+  };
+}
+
 export async function getSolutionMetadata() {
   const data = await getLocalDataSnapshot();
   return {
@@ -133,7 +235,7 @@ export async function runSolutionAnalysis(request: AnalysisRequest) {
     const rows = (lines.length ? lines : data.budgetLines).slice(0, 1500);
     const total = rows.reduce((sum, line) => sum + line.amount, 0);
     const topLine = [...rows].sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))[0];
-    return {
+    return attachNarrative(solutionId, {
       solution,
       model,
       target: request.target || "FY delta",
@@ -159,7 +261,7 @@ export async function runSolutionAnalysis(request: AnalysisRequest) {
         "Persist scenario, fiscal year, source exhibit, and account keys before model promotion.",
         "Add appropriations and enactment status as supervised features when live ingestion is connected."
       ]
-    };
+    }, sources);
   }
 
   if (solutionId === "ml-anomaly-detection") {
@@ -168,7 +270,7 @@ export async function runSolutionAnalysis(request: AnalysisRequest) {
     const awards = data.awardTransactions.filter((award) => !sourcePaths.size || sourcePaths.has(award.source));
     const rows = awards.length ? awards : data.awardTransactions;
     const top = [...rows].sort((a, b) => Math.abs(b.obligation) - Math.abs(a.obligation))[0];
-    return {
+    return attachNarrative(solutionId, {
       solution,
       model,
       target: request.target || "Anomaly severity",
@@ -194,12 +296,12 @@ export async function runSolutionAnalysis(request: AnalysisRequest) {
         "Add recipient identifiers and award lifecycle stage before automated alerting.",
         "Use reviewer feedback to label false positives and improve threshold calibration."
       ]
-    };
+    }, sources);
   }
 
   if (solutionId === "audit-readiness-assistant") {
     const sources = selectedOrDomainSources(data, sourceSet, ["document"]);
-    return {
+    return attachNarrative(solutionId, {
       solution,
       model,
       target: request.target || "Control readiness",
@@ -225,13 +327,13 @@ export async function runSolutionAnalysis(request: AnalysisRequest) {
         "Use document snippets as evidence records rather than static PDF references.",
         "Add approval workflow before production audit-readiness scoring."
       ]
-    };
+    }, sources);
   }
 
   if (solutionId === "finops-cockpit") {
     const sources = selectedOrDomainSources(data, sourceSet, ["awards"]);
     const rows = data.awardInsights.byRecipient;
-    return {
+    return attachNarrative(solutionId, {
       solution,
       model,
       target: request.target || "Obligation amount",
@@ -257,12 +359,12 @@ export async function runSolutionAnalysis(request: AnalysisRequest) {
         "Connect award lifecycle status to separate expected concentration from unusual concentration.",
         "Create drilldowns by recipient, office, object class, and state."
       ]
-    };
+    }, sources);
   }
 
   if (solutionId === "document-intelligence") {
     const sources = selectedOrDomainSources(data, sourceSet, ["document", "exhibit", "budget"]);
-    return {
+    return attachNarrative(solutionId, {
       solution,
       model,
       target: request.target || "Document theme",
@@ -288,11 +390,11 @@ export async function runSolutionAnalysis(request: AnalysisRequest) {
         "Extract tables into normalized budget/document fact tables.",
         "Track page, section, source path, and parser version for every extracted fact."
       ]
-    };
+    }, sources);
   }
 
   const sources = selectedOrDomainSources(data, sourceSet, ["awards", "budget", "document", "exhibit"]);
-  return {
+  return attachNarrative(solutionId, {
     solution,
     model,
     target: request.target || "Parser coverage",
@@ -318,5 +420,5 @@ export async function runSolutionAnalysis(request: AnalysisRequest) {
       "Gate production refresh on row-count, source-signature, and schema-drift checks.",
       "Add GitHub Action or Vercel cron jobs once cloud storage and Neon are configured."
     ]
-  };
+  }, sources);
 }

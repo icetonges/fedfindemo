@@ -35,6 +35,10 @@ type AnalysisPayload = {
   drivers: Array<{ name: string; value: number; direction: string }>;
   outputs: Array<{ entity: string; score: number; value: string; evidence: string; action: string }>;
   recommendations: string[];
+  executiveSummary: string;
+  sourceBrief: Array<{ name: string; path: string; domain: string; type: string; fiscalYear: string; status: string; role: string }>;
+  modelMethodology: string[];
+  actionItems: Array<{ priority: string; owner: string; action: string; evidenceNeeded: string }>;
 };
 
 const iconMap = {
@@ -195,36 +199,54 @@ export function SolutionGalleryWorkbench({ solutions, models, sources }: { solut
       </section>
 
       {analysis ? (
-        <section className="grid cols-2 analysis-panel" ref={resultRef}>
-          <div className="section">
-            <div className="section-head">
-              <h2>Model Run</h2>
-              <span className="pill">{analysis.model.family}</span>
+        <section className="analysis-panel report-flow" ref={resultRef}>
+          <div className="section-head">
+            <div>
+              <p className="eyebrow">Model Run Report</p>
+              <h2>{analysis.solution.title}</h2>
+              <p>{analysis.model.label} . {analysis.model.family} . {analysis.target}</p>
             </div>
-            <div className="signal-grid solution-signals">
-              <div className="signal-card"><span>Confidence</span><strong>{analysis.diagnostics.confidence}%</strong></div>
-              <div className="signal-card"><span>Training rows</span><strong>{analysis.diagnostics.trainingRows.toLocaleString()}</strong></div>
-              <div className="signal-card"><span>Sources</span><strong>{analysis.diagnostics.sourceCount}</strong></div>
-              <div className="signal-card"><span>Lift</span><strong>{analysis.diagnostics.lift}</strong></div>
-            </div>
-            <article className="list-item">
-              <h3>{analysis.target}</h3>
-              <p>{analysis.summary}</p>
-              <span className="mini">{analysis.diagnostics.backtest} . {analysis.horizon}</span>
-            </article>
-            <div className="list">
-              {analysis.recommendations.map((item) => (
-                <article className="list-item" key={item}>
-                  <h3>Recommended action</h3>
-                  <p>{item}</p>
-                </article>
-              ))}
-            </div>
+            <span className="pill">{analysis.horizon}</span>
           </div>
 
-          <div className="section">
+          <article className="card report-block">
+            <h2>Executive Summary</h2>
+            <p>{analysis.executiveSummary}</p>
+          </article>
+
+          <div className="signal-grid solution-signals">
+            <div className="signal-card"><span>Confidence</span><strong>{analysis.diagnostics.confidence}%</strong></div>
+            <div className="signal-card"><span>Rows analyzed</span><strong>{analysis.diagnostics.trainingRows.toLocaleString()}</strong></div>
+            <div className="signal-card"><span>Sources used</span><strong>{analysis.diagnostics.sourceCount}</strong></div>
+            <div className="signal-card"><span>Validation signal</span><strong>{analysis.diagnostics.lift}</strong></div>
+          </div>
+
+          <section className="card report-block">
             <div className="section-head">
-              <h2>Feature Impact</h2>
+              <h2>How The Model Works On The Selected Documents</h2>
+              <span className="pill">{analysis.diagnostics.backtest}</span>
+            </div>
+            <div className="knowledge-grid">
+              <article className="knowledge-section">
+                <h3>Model method</h3>
+                <ul>
+                  {analysis.modelMethodology.map((item) => <li key={item}>{item}</li>)}
+                </ul>
+              </article>
+              <article className="knowledge-section">
+                <h3>Document/source set interpreted</h3>
+                <ul>
+                  {analysis.sourceBrief.map((source) => (
+                    <li key={source.path}>{source.name}: {source.role}; {source.domain}/{source.type}; FY{source.fiscalYear}; {source.status}.</li>
+                  ))}
+                </ul>
+              </article>
+            </div>
+          </section>
+
+          <section className="card report-block">
+            <div className="section-head">
+              <h2>Detailed Analysis Results</h2>
               <span className="pill">Explainability</span>
             </div>
             <div className="driver-list">
@@ -236,7 +258,7 @@ export function SolutionGalleryWorkbench({ solutions, models, sources }: { solut
                 </div>
               ))}
             </div>
-            <div className="card table-wrap">
+            <div className="table-wrap">
               <table>
                 <thead>
                   <tr>
@@ -244,7 +266,7 @@ export function SolutionGalleryWorkbench({ solutions, models, sources }: { solut
                     <th>Score</th>
                     <th>Value</th>
                     <th>Evidence</th>
-                    <th>Action</th>
+                    <th>Model action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -260,7 +282,36 @@ export function SolutionGalleryWorkbench({ solutions, models, sources }: { solut
                 </tbody>
               </table>
             </div>
-          </div>
+          </section>
+
+          <section className="card report-block">
+            <div className="section-head">
+              <h2>Action Items</h2>
+              <span className="pill">{analysis.actionItems.length} actions</span>
+            </div>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Priority</th>
+                    <th>Owner</th>
+                    <th>Action</th>
+                    <th>Evidence needed</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {analysis.actionItems.map((item) => (
+                    <tr key={`${item.priority}-${item.action}`}>
+                      <td><span className={`status ${item.priority === "High" ? "high" : item.priority === "Medium" ? "medium" : "watch"}`}>{item.priority}</span></td>
+                      <td>{item.owner}</td>
+                      <td>{item.action}</td>
+                      <td>{item.evidenceNeeded}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
         </section>
       ) : null}
     </div>
